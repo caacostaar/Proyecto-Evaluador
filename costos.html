@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProyectoPro — Costos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav id="navbar" class="navbar"></nav>
+
+<div class="container">
+
+  <div class="stats-bar">
+    <div class="stat-item green"><div class="stat-label">Ingresos</div><div class="stat-value" id="statIngresos">—</div></div>
+    <div class="stat-item red"><div class="stat-label">Egresos</div><div class="stat-value" id="statEgresos">—</div></div>
+    <div class="stat-item blue"><div class="stat-label">CAPEX</div><div class="stat-value" id="statCapex">—</div></div>
+    <div class="stat-item"><div class="stat-label">Ítems</div><div class="stat-value" id="statItems">0</div></div>
+  </div>
+
+  <div class="card" id="formCard">
+    <h2><span class="icon">&#43;</span> <span id="formTitle">Nuevo costo</span></h2>
+    <form id="costoForm" class="form-grid">
+      <div class="form-group">
+        <label for="codigo">ID del costo</label>
+        <input type="text" id="codigo" placeholder="C-001">
+      </div>
+      <div class="form-group">
+        <label for="familia">Familia</label>
+        <input type="text" id="familia" placeholder="Hardware, Servicios, Personal…">
+      </div>
+      <div class="form-group">
+        <label for="clase">Clase</label>
+        <input type="text" id="clase" placeholder="Servidores, Soporte…">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label for="descripcion">Descripción</label>
+        <input type="text" id="descripcion" required placeholder="Descripción detallada del costo">
+      </div>
+      <div class="form-group">
+        <label for="categoria">Categoría</label>
+        <select id="categoria"></select>
+      </div>
+      <div class="form-group">
+        <label for="valor" id="valorLabel">Valor mensual</label>
+        <input type="number" id="valor" min="0" step="0.01" required placeholder="0">
+      </div>
+      <div class="form-group">
+        <label for="fecha_inicio">Fecha de inicio</label>
+        <input type="date" id="fecha_inicio" required>
+      </div>
+      <div class="form-group">
+        <label for="duracion">Duración (meses)</label>
+        <input type="number" id="duracion" min="1" value="1" required>
+      </div>
+      <div class="form-group">
+        <label for="moneda">Moneda</label>
+        <select id="moneda">
+          <option value="COP">COP</option>
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+        </select>
+      </div>
+      <div class="btn-group" style="grid-column:1/-1">
+        <button type="submit" class="btn btn-primary">&#128190; Guardar</button>
+        <button type="button" class="btn btn-secondary" id="btnCancelar">Cancelar</button>
+      </div>
+    </form>
+  </div>
+
+  <p id="soloLectura" class="alert alert-info hidden">Tu perfil permite consultar los costos. Para registrarlos o editarlos se requiere perfil Preventa o Administrador.</p>
+
+  <div class="card">
+    <h2><span class="icon">&#128178;</span> Costos del proyecto</h2>
+    <div class="flex items-center gap-4 mb-2" style="flex-wrap:wrap">
+      <div class="form-group" style="margin:0;min-width:220px">
+        <label for="filterCat">Filtrar por categoría</label>
+        <select id="filterCat"><option value="">Todas</option></select>
+      </div>
+      <a href="flujo-caja.html" class="btn btn-secondary" style="margin-top:1rem">&#128200; Ver flujo de caja</a>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Familia</th><th>Descripción</th><th>Categoría</th>
+            <th class="right">Valor</th><th class="right">Total</th><th>Mon.</th><th>Inicio</th><th>Meses</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="costosBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+// recurrente: el valor se repite cada mes durante la duración; si no, es un pago único de valor × duración
+const CATS = {
+  ingreso:             { label: 'Ingreso del Proyecto',  grupo: 'INGRESOS',           recurrente: true  },
+  ingreso_instalacion: { label: 'Ingreso Instalaciones', grupo: 'INGRESOS',           recurrente: true  },
+  opex_efectivo:       { label: 'OPEX Efectivo',         grupo: 'EGRESOS',            recurrente: true  },
+  opex_no_efectivo:    { label: 'OPEX No Efectivo',      grupo: 'EGRESOS',            recurrente: true  },
+  gasto_instalacion:   { label: 'Gastos Instalaciones',  grupo: 'EGRESOS',            recurrente: true  },
+  costo_indirecto:     { label: 'Costos Indirectos',     grupo: 'EGRESOS',            recurrente: true  },
+  costo_impositivo:    { label: 'Costos Impositivos',    grupo: 'EGRESOS',            recurrente: true  },
+  depreciacion:        { label: 'Depreciación',          grupo: 'DEPRECIACIONES',     recurrente: true  },
+  gasto_financiero:    { label: 'Gastos Financieros',    grupo: 'GASTOS FINANCIEROS', recurrente: true  },
+  capex_instalacion:   { label: 'CAPEX Instalaciones',   grupo: 'CAPEX',              recurrente: false },
+  capex_efectivo:      { label: 'CAPEX Efectivo',        grupo: 'CAPEX',              recurrente: false },
+  capex_no_efectivo:   { label: 'CAPEX No Efectivo',     grupo: 'CAPEX',              recurrente: false },
+  salvamento:          { label: 'Salvamento',            grupo: 'SALVAMENTO',         recurrente: false },
+};
+const BADGE = { INGRESOS: 'badge-green', EGRESOS: 'badge-red', CAPEX: 'badge-blue', DEPRECIACIONES: 'badge-orange', 'GASTOS FINANCIEROS': 'badge-orange', SALVAMENTO: 'badge-gray' };
+const CAMPOS = ['codigo', 'familia', 'clase', 'descripcion', 'categoria', 'valor', 'fecha_inicio', 'duracion', 'moneda'];
+
+let costos = [];
+let editId = null;
+
+function opcionesCategoria() {
+  const grupos = {};
+  Object.entries(CATS).forEach(([id, c]) => { (grupos[c.grupo] ||= []).push(`<option value="${id}">${c.label}</option>`); });
+  return Object.entries(grupos).map(([g, ops]) => `<optgroup label="${g}">${ops.join('')}</optgroup>`).join('');
+}
+
+const totalCosto = c => Number(c.valor) * c.duracion;
+
+async function cargar() {
+  costos = await App.q(App.sb.from('costos').select('*').eq('proyecto_id', App.proyecto.id).order('creado_en'));
+  render();
+}
+
+function render() {
+  const mon = App.proyecto.moneda;
+  let ing = 0, egr = 0, cap = 0;
+  costos.forEach(c => {
+    const g = CATS[c.categoria].grupo;
+    if (g === 'INGRESOS') ing += totalCosto(c);
+    else if (g === 'CAPEX') cap += totalCosto(c);
+    else if (g !== 'SALVAMENTO') egr += totalCosto(c);
+  });
+  document.getElementById('statIngresos').textContent = App.fmtCur(ing, mon);
+  document.getElementById('statEgresos').textContent = App.fmtCur(egr, mon);
+  document.getElementById('statCapex').textContent = App.fmtCur(cap, mon);
+  document.getElementById('statItems').textContent = costos.length;
+
+  const filtro = document.getElementById('filterCat').value;
+  const esc = App.esc;
+  const editable = App.puedeEditar();
+  document.getElementById('costosBody').innerHTML = costos
+    .filter(c => !filtro || c.categoria === filtro)
+    .map(c => {
+      const cat = CATS[c.categoria];
+      return `<tr>
+        <td>${esc(c.codigo)}</td>
+        <td>${esc(c.familia)}${c.clase ? `<br><small class="text-muted">${esc(c.clase)}</small>` : ''}</td>
+        <td>${esc(c.descripcion)}</td>
+        <td><span class="badge ${BADGE[cat.grupo]}">${cat.label}</span></td>
+        <td class="num">${App.fmtNum(c.valor)}${cat.recurrente ? '<small class="text-muted">/mes</small>' : ''}</td>
+        <td class="num">${App.fmtNum(totalCosto(c))}</td>
+        <td>${esc(c.moneda)}</td>
+        <td class="nowrap">${App.fecha(c.fecha_inicio)}</td>
+        <td class="center">${c.duracion}</td>
+        <td class="nowrap">${editable ? `
+          <button class="btn btn-sm btn-secondary" data-accion="editar" data-id="${c.id}" title="Editar">&#9998;</button>
+          <button class="btn btn-sm btn-danger" data-accion="eliminar" data-id="${c.id}" title="Eliminar">&#215;</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('')
+    || `<tr><td colspan="10" class="center text-muted" style="padding:2rem">Sin costos registrados</td></tr>`;
+}
+
+function actualizarEtiquetaValor() {
+  const recurrente = CATS[document.getElementById('categoria').value].recurrente;
+  document.getElementById('valorLabel').textContent = recurrente ? 'Valor mensual' : 'Valor (pago único)';
+}
+
+function limpiarForm() {
+  editId = null;
+  document.getElementById('costoForm').reset();
+  document.getElementById('fecha_inicio').value = App.proyecto.fecha_inicio;
+  document.getElementById('moneda').value = App.proyecto.moneda;
+  document.getElementById('formTitle').textContent = 'Nuevo costo';
+  actualizarEtiquetaValor();
+}
+
+function editar(id) {
+  const c = costos.find(x => x.id === id);
+  editId = id;
+  CAMPOS.forEach(k => { document.getElementById(k).value = c[k] ?? ''; });
+  document.getElementById('formTitle').textContent = 'Editar costo';
+  actualizarEtiquetaValor();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function eliminar(id) {
+  if (!confirm('¿Eliminar este costo?')) return;
+  await App.q(App.sb.from('costos').delete().eq('id', id));
+  App.toast('Costo eliminado', 'error');
+  await cargar();
+}
+
+document.getElementById('costoForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const datos = {};
+  CAMPOS.forEach(k => { datos[k] = document.getElementById(k).value.trim(); });
+  datos.valor = parseFloat(datos.valor);
+  datos.duracion = parseInt(datos.duracion, 10);
+
+  if (editId) {
+    await App.q(App.sb.from('costos').update(datos).eq('id', editId));
+    App.toast('Costo actualizado');
+  } else {
+    await App.q(App.sb.from('costos').insert({ ...datos, proyecto_id: App.proyecto.id }));
+    App.toast('Costo guardado');
+  }
+  limpiarForm();
+  await cargar();
+});
+
+document.getElementById('costosBody').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-accion]');
+  if (!btn) return;
+  if (btn.dataset.accion === 'editar') editar(btn.dataset.id);
+  if (btn.dataset.accion === 'eliminar') eliminar(btn.dataset.id);
+});
+document.getElementById('btnCancelar').addEventListener('click', limpiarForm);
+document.getElementById('categoria').addEventListener('change', actualizarEtiquetaValor);
+document.getElementById('filterCat').addEventListener('change', render);
+
+(async () => {
+  if (!await App.iniciar({ pagina: 'costos.html', requiereProyecto: true })) return;
+  document.getElementById('categoria').innerHTML = opcionesCategoria();
+  document.getElementById('categoria').value = 'opex_efectivo';
+  document.getElementById('filterCat').innerHTML += opcionesCategoria();
+  if (App.puedeEditar()) {
+    limpiarForm();
+  } else {
+    document.getElementById('formCard').classList.add('hidden');
+    document.getElementById('soloLectura').classList.remove('hidden');
+  }
+  await cargar();
+})();
+</script>
+</body>
+</html>

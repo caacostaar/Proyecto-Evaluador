@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProyectoPro — Parámetros</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav id="navbar" class="navbar"></nav>
+
+<div class="container">
+  <div class="card">
+    <h2><span class="icon">&#9881;</span> Tablas paramétricas</h2>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="tabContent"></div>
+
+    <div class="btn-group mt-4">
+      <button type="button" class="btn btn-primary" id="btnGuardar">&#128190; Guardar todos</button>
+      <button type="button" class="btn btn-secondary" id="btnDefaults">Cargar valores Colombia</button>
+      <a href="flujo-caja.html" class="btn btn-secondary">&#128200; Ver flujo de caja</a>
+    </div>
+    <p id="restrictMsg" class="alert alert-warn mt-4 hidden">
+      &#9888; El Factor de Sensibilidad solo puede modificarlo un usuario Preventa o Administrador.
+    </p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+// Cada fila del editor es una columna de la tabla en Supabase; cada columna del editor es un mes del contrato
+const TABS = {
+  macro: {
+    label: '&#127758; Macroeconómicos', tabla: 'indicadores_macroeconomicos',
+    rows: [
+      { id: 'trm',         label: 'TRM (COP/USD)',               unit: 'COP', def: 4150 },
+      { id: 'ipc',         label: 'IPC mensual (%)',              unit: '%',   def: 0.50 },
+      { id: 'inflacion',   label: 'Inflación mensual (%)',        unit: '%',   def: 0.50 },
+      { id: 'dtf',         label: 'DTF E.A. (%)',                 unit: '%',   def: 11.50 },
+      { id: 'ibr',         label: 'IBR nominal mes vencido (%)',  unit: '%',   def: 11.25 },
+      { id: 'devaluacion', label: 'Devaluación mensual (%)',      unit: '%',   def: 0.30 },
+    ],
+  },
+  wacc: {
+    label: '&#128200; WACC', tabla: 'wacc_mensual',
+    rows: [
+      { id: 'wacc_cop', label: 'WACC COP (%)', unit: '%', def: 18.50 },
+      { id: 'wacc_usd', label: 'WACC USD (%)', unit: '%', def: 12.00 },
+    ],
+  },
+  impositivos: {
+    label: '&#128179; Impositivos', tabla: 'parametros_impositivos',
+    rows: [
+      { id: 'renta',     label: 'Impuesto de renta (%)',      unit: '%', def: 35 },
+      { id: 'iva',       label: 'IVA (%)',                    unit: '%', def: 19 },
+      { id: 'retencion', label: 'Retención en la fuente (%)', unit: '%', def: 3.5 },
+      { id: 'ica',       label: 'ICA (%)',                    unit: '%', def: 0.69 },
+      { id: 'gmf',       label: 'GMF — 4×1000 (%)',           unit: '%', def: 0.4 },
+    ],
+  },
+  negocio: {
+    label: '&#127970; Negocio', tabla: 'parametricas_negocio',
+    rows: [
+      { id: 'margen_objetivo',      label: 'Margen objetivo (%)',                 unit: '%',     def: 20 },
+      { id: 'crecimiento_ingresos', label: 'Crecimiento de ingresos mensual (%)', unit: '%',     def: 1 },
+      { id: 'vida_util_activos',    label: 'Vida útil de activos',                unit: 'meses', def: 60 },
+      { id: 'tasa_descuento',       label: 'Tasa de descuento (%)',               unit: '%',     def: 15 },
+      { id: 'factor_multiplicador', label: 'Factor Multiplicador (FM)',           unit: 'x',     def: 1.30 },
+      { id: 'factor_sensibilidad',  label: 'Factor de Sensibilidad (FS) &#9888;', unit: 'x',     def: 1.00, restringido: true },
+    ],
+  },
+};
+
+let tabActual = 'macro';
+let n = 0;
+let periodos = [];
+const datos = {};   // datos[tab][fila] = [valor mes 1, …, valor mes n]
+
+function editable(row) {
+  return !row.restringido || App.puedeEditar();
+}
+
+async function cargar() {
+  const pid = App.proyecto.id;
+  const resultados = await Promise.all(Object.values(TABS).map(t =>
+    App.q(App.sb.from(t.tabla).select('*').eq('proyecto_id', pid).lte('mes', n).order('mes'))));
+  Object.entries(TABS).forEach(([tabId, tab], k) => {
+    datos[tabId] = {};
+    tab.rows.forEach(row => { datos[tabId][row.id] = Array(n).fill(row.def); });
+    resultados[k].forEach(fila => {
+      tab.rows.forEach(row => {
+        if (fila[row.id] != null) datos[tabId][row.id][fila.mes - 1] = Number(fila[row.id]);
+      });
+    });
+  });
+}
+
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = Object.entries(TABS).map(([id, t]) =>
+    `<button type="button" class="tab-btn${id === tabActual ? ' active' : ''}" data-tab="${id}">${t.label}</button>`).join('');
+}
+
+function renderTabla() {
+  const tab = TABS[tabActual];
+  document.getElementById('tabContent').innerHTML = `
+    <div class="param-table-wrap"><table class="param-table">
+      <thead><tr>
+        <th class="row-label">Parámetro</th>
+        <th title="Copiar el valor del primer mes a todos los meses">&#8594;&#8594;</th>
+        ${periodos.map(p => `<th>${p}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${tab.rows.map(row => {
+          const bloqueado = !editable(row);
+          const estilo = bloqueado ? ' style="background:#f1f5f9;color:#94a3b8;cursor:not-allowed"' : '';
+          return `<tr>
+            <td class="row-label">${row.label}<br><small class="text-muted">${row.unit}</small></td>
+            <td><button type="button" class="copy-btn" data-row="${row.id}"${bloqueado ? ' disabled style="opacity:.35"' : ''}>&#8594;&#8594;</button></td>
+            ${datos[tabActual][row.id].map((v, i) =>
+              `<td><input type="number" step="any" data-row="${row.id}" data-idx="${i}" value="${v}"${bloqueado ? ' disabled' : ''}${estilo}></td>`).join('')}
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  tabActual = btn.dataset.tab;
+  renderTabs();
+  renderTabla();
+});
+
+document.getElementById('tabContent').addEventListener('input', e => {
+  const inp = e.target;
+  if (!inp.dataset.row) return;
+  const row = TABS[tabActual].rows.find(r => r.id === inp.dataset.row);
+  const v = parseFloat(inp.value);
+  datos[tabActual][row.id][Number(inp.dataset.idx)] = Number.isFinite(v) ? v : row.def;
+});
+
+document.getElementById('tabContent').addEventListener('click', e => {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn || btn.disabled) return;
+  const fila = datos[tabActual][btn.dataset.row];
+  fila.fill(fila[0]);
+  renderTabla();
+  App.toast(`Valor ${fila[0]} copiado a todos los meses`);
+});
+
+document.getElementById('btnDefaults').addEventListener('click', () => {
+  if (!confirm('¿Cargar los valores por defecto para Colombia? Se reemplazarán los valores en pantalla (no se guardan hasta que pulses Guardar).')) return;
+  Object.entries(TABS).forEach(([tabId, tab]) => {
+    tab.rows.filter(editable).forEach(row => { datos[tabId][row.id] = Array(n).fill(row.def); });
+  });
+  renderTabla();
+  App.toast('Valores Colombia cargados. Pulsa Guardar para conservarlos.');
+});
+
+document.getElementById('btnGuardar').addEventListener('click', async e => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  try {
+    const pid = App.proyecto.id;
+    await Promise.all(Object.entries(TABS).map(([tabId, tab]) => {
+      const filas = Array.from({ length: n }, (_, i) => {
+        const fila = { proyecto_id: pid, mes: i + 1 };
+        tab.rows.filter(editable).forEach(row => { fila[row.id] = datos[tabId][row.id][i]; });
+        return fila;
+      });
+      return App.q(App.sb.from(tab.tabla).upsert(filas, { onConflict: 'proyecto_id,mes' }));
+    }));
+    App.toast('Parámetros guardados');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+(async () => {
+  if (!await App.iniciar({ pagina: 'parametros.html', requiereProyecto: true })) return;
+  n = App.proyecto.tiempo_contrato;
+  periodos = App.periodos(App.proyecto);
+  if (!App.puedeEditar()) document.getElementById('restrictMsg').classList.remove('hidden');
+  await cargar();
+  renderTabs();
+  renderTabla();
+})();
+</script>
+</body>
+</html>

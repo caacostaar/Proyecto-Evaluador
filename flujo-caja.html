@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProyectoPro — Flujo de Caja</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav id="navbar" class="navbar"></nav>
+
+<div class="container">
+
+  <div class="stats-bar" id="kpiBar"></div>
+
+  <div class="card">
+    <h2><span class="icon">&#128200;</span> Flujo de caja — <span id="tituloProyecto"></span></h2>
+    <div class="btn-group">
+      <button type="button" class="btn btn-secondary btn-sm" id="btnActualizar">&#8635; Actualizar</button>
+      <a href="costos.html" class="btn btn-secondary btn-sm">&#128178; Costos</a>
+      <a href="parametros.html" class="btn btn-secondary btn-sm">&#9881; Parámetros</a>
+    </div>
+    <div id="pricingFormula" class="alert alert-ok mt-4 hidden" style="margin-bottom:0;line-height:1.7"></div>
+  </div>
+
+  <div class="card" style="padding:0">
+    <div class="flujo-table-wrap">
+      <table class="flujo-table">
+        <thead id="flujoHead"></thead>
+        <tbody id="flujoBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+const SECCIONES = {
+  ingreso:             'Ingreso del Proyecto',
+  ingreso_instalacion: 'Ingreso Instalaciones',
+  opex_efectivo:       'OPEX Efectivo',
+  opex_no_efectivo:    'OPEX No Efectivo',
+  gasto_instalacion:   'Gastos Instalaciones',
+  costo_indirecto:     'Costos Indirectos',
+  costo_impositivo:    'Costos Impositivos',
+  depreciacion:        'Depreciación',
+  gasto_financiero:    'Gastos Financieros',
+  capex_instalacion:   'CAPEX Instalaciones',
+  capex_efectivo:      'CAPEX Efectivo',
+  capex_no_efectivo:   'CAPEX No Efectivo',
+  salvamento:          'Salvamento',
+};
+const RECURRENTES = new Set(['ingreso', 'ingreso_instalacion', 'opex_efectivo', 'opex_no_efectivo',
+  'gasto_instalacion', 'costo_indirecto', 'costo_impositivo', 'depreciacion', 'gasto_financiero']);
+const EGRESOS = ['opex_efectivo', 'opex_no_efectivo', 'gasto_instalacion', 'costo_indirecto', 'costo_impositivo'];
+const CAPEX = ['capex_instalacion', 'capex_efectivo', 'capex_no_efectivo'];
+const OPEX_PRECIO = [...EGRESOS, 'depreciacion', 'gasto_financiero'];
+
+let n = 0;
+let periodos = [];
+
+const ceros = () => Array(n).fill(0);
+const sumar = (a, b) => a.map((v, i) => v + b[i]);
+const total = arr => arr.reduce((a, b) => a + b, 0);
+
+// Distribuye cada costo en los meses del contrato
+function construirSecciones(costos) {
+  const secciones = {};
+  Object.keys(SECCIONES).forEach(cat => { secciones[cat] = { items: [], totales: ceros() }; });
+  costos.forEach(c => {
+    const valores = ceros();
+    const inicio = App.indiceMes(App.proyecto, c.fecha_inicio);
+    const valor = Number(c.valor);
+    if (RECURRENTES.has(c.categoria)) {
+      for (let i = 0; i < c.duracion; i++) {
+        if (inicio + i >= 0 && inicio + i < n) valores[inicio + i] += valor;
+      }
+    } else if (inicio >= 0 && inicio < n) {
+      valores[inicio] += valor * c.duracion;
+    }
+    const s = secciones[c.categoria];
+    s.items.push({ label: c.descripcion || c.codigo, valores });
+    s.totales = sumar(s.totales, valores);
+  });
+  return secciones;
+}
+
+// Ingreso mensual = (CAPEX total + OPEX total) ÷ n × FM × FS
+function ingresoCalculado(secciones, negocio) {
+  const totalCAPEX = CAPEX.reduce((s, cat) => s + total(secciones[cat].totales), 0);
+  const totalOPEX = OPEX_PRECIO.reduce((s, cat) => s + total(secciones[cat].totales), 0);
+  const base = (totalCAPEX + totalOPEX) / n;
+  const factores = Array.from({ length: n }, (_, i) => {
+    const fila = negocio.find(f => f.mes === i + 1);
+    return { fm: fila ? Number(fila.factor_multiplicador) : 1.30, fs: fila ? Number(fila.factor_sensibilidad) : 1.00 };
+  });
+  return {
+    valores: factores.map(f => base * f.fm * f.fs),
+    totalCAPEX, totalOPEX, base, fm0: factores[0].fm, fs0: factores[0].fs,
+  };
+}
+
+function calcularFlujo(s, calc) {
+  const totalIngresos = [s.ingreso.totales, s.ingreso_instalacion.totales, calc.valores].reduce(sumar, ceros());
+  const totalEgresos = EGRESOS.reduce((acc, cat) => sumar(acc, s[cat].totales), ceros());
+  const EBITDA = totalIngresos.map((v, i) => v - totalEgresos[i]);
+  const EBIT = EBITDA.map((v, i) => v - s.depreciacion.totales[i]);
+  const totalCAPEX = CAPEX.reduce((acc, cat) => sumar(acc, s[cat].totales), ceros());
+  const FCI = totalCAPEX.map((v, i) => v - EBITDA[i]);
+  const FCL = FCI.map((v, i) => v - s.gasto_financiero.totales[i] + s.salvamento.totales[i]);
+  return { totalIngresos, totalEgresos, EBITDA, EBIT, totalCAPEX, FCI, FCL };
+}
+
+function render(secciones, calc, f) {
+  const mon = App.proyecto.moneda;
+  const cur = v => App.fmtCur(v, mon);
+
+  const kpis = [
+    ['Ingresos totales', total(f.totalIngresos), 'green'],
+    ['Egresos totales', total(f.totalEgresos), 'red'],
+    ['EBITDA', total(f.EBITDA), total(f.EBITDA) >= 0 ? 'green' : 'red'],
+    ['FCL', total(f.FCL), total(f.FCL) >= 0 ? 'green' : 'red'],
+    ['CAPEX', total(f.totalCAPEX), 'blue'],
+  ];
+  document.getElementById('kpiBar').innerHTML = kpis.map(([label, v, cls]) =>
+    `<div class="stat-item ${cls}"><div class="stat-label">${label}</div><div class="stat-value">${cur(v)}</div></div>`).join('');
+
+  const formula = document.getElementById('pricingFormula');
+  const hayCostos = calc.totalCAPEX + calc.totalOPEX > 0;
+  formula.classList.toggle('hidden', !hayCostos);
+  if (hayCostos) {
+    formula.innerHTML = `&#9881; <strong>Ingreso calculado:</strong>
+      (CAPEX ${cur(calc.totalCAPEX)} + OPEX ${cur(calc.totalOPEX)}) ÷ ${n} meses
+      = ${cur(calc.base)}/mes × FM ${calc.fm0.toFixed(2)} × FS ${calc.fs0.toFixed(2)}
+      = <strong>${cur(calc.valores[0])}/mes</strong> · Total <strong>${cur(total(calc.valores))}</strong>
+      &nbsp;<a href="parametros.html">Editar factores</a>`;
+  }
+
+  document.getElementById('flujoHead').innerHTML = `<tr>
+    <th class="col-sticky">Concepto</th>${periodos.map(p => `<th>${p}</th>`).join('')}<th class="total-col">TOTAL</th></tr>`;
+
+  const filas = [];
+  const vacias = `<td></td>`.repeat(n + 1);
+  const fila = (label, valores, cls = '') => filas.push(`<tr class="${cls}">
+    <td class="col-sticky">${label}</td>
+    ${valores.map(v => `<td class="num">${v ? cur(v) : '—'}</td>`).join('')}
+    <td class="num total-col">${cur(total(valores))}</td></tr>`);
+  const encabezado = label => filas.push(`<tr class="section-hdr"><td class="col-sticky">${label}</td>${vacias}</tr>`);
+  const detalle = (cat, conSubtitulo) => {
+    const s = secciones[cat];
+    if (conSubtitulo) filas.push(`<tr class="sub-hdr"><td class="col-sticky" style="padding-left:1.5rem">${SECCIONES[cat]}</td>${vacias}</tr>`);
+    s.items.forEach(it => fila('&nbsp;&nbsp;└ ' + App.esc(it.label), it.valores));
+    if (conSubtitulo && s.items.length) fila('&nbsp;&nbsp;Subtotal ' + SECCIONES[cat], s.totales, 'subtotal-row');
+  };
+
+  encabezado('INGRESOS');
+  ['ingreso', 'ingreso_instalacion'].forEach(cat => detalle(cat, true));
+  if (hayCostos) {
+    fila(`&#9881; Ingreso calculado (CAPEX + OPEX) ÷ n × FM × FS`, calc.valores, 'calc-ing-row');
+  }
+  fila('TOTAL INGRESOS', f.totalIngresos, 'subtotal-row');
+
+  encabezado('EGRESOS');
+  EGRESOS.forEach(cat => detalle(cat, true));
+  fila('TOTAL EGRESOS', f.totalEgresos, 'subtotal-row');
+
+  fila('EBITDA', f.EBITDA, 'ebitda-row');
+
+  encabezado('DEPRECIACIONES');
+  detalle('depreciacion', false);
+  fila('Total depreciaciones', secciones.depreciacion.totales, 'subtotal-row');
+
+  fila('EBIT (utilidad operativa)', f.EBIT, 'ebit-row');
+
+  encabezado('GASTOS FINANCIEROS');
+  detalle('gasto_financiero', false);
+  fila('Total gastos financieros', secciones.gasto_financiero.totales, 'subtotal-row');
+
+  encabezado('CAPEX');
+  CAPEX.forEach(cat => detalle(cat, true));
+  fila('TOTAL CAPEX', f.totalCAPEX, 'subtotal-row');
+
+  fila('FCI — Flujo de caja de inversión', f.FCI, 'fci-row');
+
+  encabezado('SALVAMENTO');
+  detalle('salvamento', false);
+  fila('Total salvamento', secciones.salvamento.totales, 'subtotal-row');
+
+  fila('FCL — Flujo de caja libre', f.FCL, 'fcl-row');
+  let acumulado = 0;
+  fila('FCL acumulado', f.FCL.map(v => (acumulado += v)), 'acum-row');
+
+  document.getElementById('flujoBody').innerHTML = filas.join('');
+}
+
+async function cargar() {
+  const pid = App.proyecto.id;
+  const [costos, negocio] = await Promise.all([
+    App.q(App.sb.from('costos').select('*').eq('proyecto_id', pid)),
+    App.q(App.sb.from('parametricas_negocio').select('mes, factor_multiplicador, factor_sensibilidad').eq('proyecto_id', pid)),
+  ]);
+  const secciones = construirSecciones(costos);
+  const calc = ingresoCalculado(secciones, negocio);
+  render(secciones, calc, calcularFlujo(secciones, calc));
+}
+
+document.getElementById('btnActualizar').addEventListener('click', cargar);
+
+(async () => {
+  if (!await App.iniciar({ pagina: 'flujo-caja.html', requiereProyecto: true })) return;
+  n = App.proyecto.tiempo_contrato;
+  periodos = App.periodos(App.proyecto);
+  document.getElementById('tituloProyecto').textContent = App.proyecto.nombre_proyecto;
+  await cargar();
+})();
+</script>
+</body>
+</html>

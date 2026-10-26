@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProyectoPro — Usuarios</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav id="navbar" class="navbar"></nav>
+
+<div class="container">
+  <div class="card">
+    <h2><span class="icon">&#128273;</span> Invitar usuarios</h2>
+    <p class="text-sm">Comparte este código con las personas de <strong id="empresaNombre"></strong>.
+      Se registran en la pestaña <em>Unirme</em> de la pantalla de acceso y entran con perfil Usuario Final.</p>
+    <div class="flex items-center gap-2 mt-2">
+      <code id="codigo" style="font-size:1.3rem;font-weight:700;letter-spacing:.15em;background:#f1f5f9;padding:.35rem .8rem;border-radius:6px"></code>
+      <button type="button" class="btn btn-secondary btn-sm" id="btnCopiar">Copiar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">&#128101;</span> Usuarios de la empresa</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Nombre</th><th>Correo</th><th>Perfil</th><th class="center">Activo</th></tr></thead>
+        <tbody id="usuariosBody"></tbody>
+      </table>
+    </div>
+    <p class="text-muted mt-2">Los cambios se guardan al instante. Un usuario desactivado no puede ingresar.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+let perfiles = [];
+let usuarios = [];
+
+async function cargar() {
+  [perfiles, usuarios] = await Promise.all([
+    App.q(App.sb.from('perfiles').select('codigo, nombre').order('nivel')),
+    App.q(App.sb.from('usuarios').select('id, nombre, email, perfil, activo').order('creado_en')),
+  ]);
+  render();
+}
+
+function render() {
+  const esc = App.esc;
+  const soySuper = App.usuario.perfil === 'super_admin';
+  document.getElementById('usuariosBody').innerHTML = usuarios.map(u => {
+    const bloqueado = u.id === App.usuario.id || (u.perfil === 'super_admin' && !soySuper);
+    const opciones = perfiles
+      .filter(p => p.codigo !== 'super_admin' || soySuper || u.perfil === 'super_admin')
+      .map(p => `<option value="${p.codigo}"${p.codigo === u.perfil ? ' selected' : ''}>${esc(p.nombre)}</option>`).join('');
+    return `<tr>
+      <td>${esc(u.nombre)}${u.id === App.usuario.id ? ' <span class="badge badge-gray">Tú</span>' : ''}</td>
+      <td>${esc(u.email)}</td>
+      <td><select data-id="${u.id}" data-campo="perfil"${bloqueado ? ' disabled' : ''}>${opciones}</select></td>
+      <td class="center"><input type="checkbox" data-id="${u.id}" data-campo="activo"${u.activo ? ' checked' : ''}${bloqueado ? ' disabled' : ''}></td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('usuariosBody').addEventListener('change', async e => {
+  const el = e.target;
+  const campo = el.dataset.campo;
+  if (!campo) return;
+  const valor = campo === 'activo' ? el.checked : el.value;
+  try {
+    await App.q(App.sb.from('usuarios').update({ [campo]: valor }).eq('id', el.dataset.id));
+    App.toast('Usuario actualizado');
+  } finally {
+    await cargar();
+  }
+});
+
+document.getElementById('btnCopiar').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(App.usuario.empresa.codigo_invitacion);
+    App.toast('Código copiado');
+  } catch (e) {
+    App.toast('No se pudo copiar; selecciónalo manualmente', 'error');
+  }
+});
+
+(async () => {
+  if (!await App.iniciar({ pagina: 'usuarios.html', soloAdmin: true })) return;
+  document.getElementById('empresaNombre').textContent = App.usuario.empresa.razon_social;
+  document.getElementById('codigo').textContent = App.usuario.empresa.codigo_invitacion;
+  await cargar();
+})();
+</script>
+</body>
+</html>
