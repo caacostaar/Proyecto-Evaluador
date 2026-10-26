@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProyectoPro — Flujo de Caja</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="brand">ProyectoPro</a>
+  <a href="index.html">&#128196; Proyecto</a>
+  <a href="costos.html">&#128178; Costos</a>
+  <a href="flujo-caja.html" class="active">&#128200; Flujo de Caja</a>
+  <a href="parametros.html">&#9881; Parámetros</a>
+  <div class="spacer"></div>
+  <span id="projectChip" class="project-chip hidden"></span>
+  <span id="userBadge" class="user-badge hidden"></span>
+</nav>
+
+<div class="container">
+
+  <!-- KPIs -->
+  <div class="stats-bar" id="kpiBar"></div>
+
+  <!-- Controls -->
+  <div class="card">
+    <h2><span class="icon">&#128200;</span> Flujo de Caja del Proyecto</h2>
+    <div class="flex items-center gap-4" style="flex-wrap:wrap">
+      <div class="form-group" style="margin:0">
+        <label>Moneda de visualización</label>
+        <select id="monedaSel" onchange="render()">
+          <option value="COP">COP</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="render()">&#8635; Actualizar</button>
+      <a href="costos.html"     class="btn btn-secondary btn-sm">&#128178; Costos</a>
+      <a href="parametros.html" class="btn btn-secondary btn-sm">&#9881; Parámetros</a>
+    </div>
+    <div id="pricingFormula" style="display:none;margin-top:10px;padding:9px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:.8rem;color:#065f46;line-height:1.6"></div>
+  </div>
+
+  <!-- Table -->
+  <div class="card" style="padding:0">
+    <div class="flujo-table-wrap">
+      <table class="flujo-table" id="flujoTable">
+        <thead id="flujoHead"></thead>
+        <tbody id="flujoBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// -------- Category → section mapping --------
+const CAT_GROUP = {
+  ingreso:             'ing',
+  ingreso_instalacion: 'ing_inst',
+  opex_efectivo:       'opex_ef',
+  opex_no_efectivo:    'opex_no_ef',
+  gasto_instalacion:   'gast_inst',
+  costo_indirecto:     'cost_ind',
+  costo_impositivo:    'cost_imp',
+  depreciacion:        'depr',
+  gasto_financiero:    'gast_fin',
+  capex_instalacion:   'capex_inst',
+  capex_efectivo:      'capex_ef',
+  capex_no_efectivo:   'capex_no_ef',
+  salvamento:          'salv',
+};
+
+const RECURRENT = new Set([
+  'ingreso','ingreso_instalacion','opex_efectivo','opex_no_efectivo',
+  'gasto_instalacion','costo_indirecto','costo_impositivo','depreciacion','gasto_financiero',
+]);
+
+const SEC_LABELS = {
+  ing:        'Ingreso del Proyecto',
+  ing_inst:   'Ingreso Instalaciones',
+  opex_ef:    'OPEX Efectivo',
+  opex_no_ef: 'OPEX No Efectivo',
+  gast_inst:  'Gastos Instalaciones',
+  cost_ind:   'Costos Indirectos',
+  cost_imp:   'Costos Impositivos',
+  depr:       'Depreciación',
+  gast_fin:   'Gastos Financieros',
+  capex_inst: 'CAPEX Instalaciones',
+  capex_ef:   'CAPEX Efectivo',
+  capex_no_ef:'CAPEX No Efectivo',
+  salv:       'Salvamento',
+};
+
+// -------- State --------
+let periods = [];
+let sections = {};
+let costosList = [];
+
+// -------- Init --------
+function init() {
+  const proj = JSON.parse(localStorage.getItem('proyectoData') || 'null');
+  if (proj) {
+    const chip = document.getElementById('projectChip');
+    chip.textContent = proj.nombreProyecto;
+    chip.classList.remove('hidden');
+    buildPeriods(proj);
+    document.getElementById('monedaSel').value = proj.tipoMoneda || 'COP';
+  }
+  try {
+    const auth = JSON.parse(localStorage.getItem('_proyectopro_auth') || 'null');
+    if (auth?.usuario?.nombre) {
+      const b = document.getElementById('userBadge');
+      b.textContent = auth.usuario.nombre + ' · ' + (auth.perfil?.nombre || '');
+      b.classList.remove('hidden');
+    }
+  } catch(e) {}
+  costosList = JSON.parse(localStorage.getItem('costosData') || '[]');
+  buildSections();
+  render();
+}
+
+function buildPeriods(proj) {
+  const start = new Date(proj.fechaInicio + 'T00:00:00');
+  const n = parseInt(proj.tiempoContrato) || 12;
+  periods = [];
+  for (let i = 0; i < n; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+    periods.push(d.toLocaleDateString('es-CO', { month:'short', year:'2-digit' }));
+  }
+}
+
+function buildSections() {
+  const n = periods.length || 12;
+  const zero = () => Array(n).fill(0);
+  sections = {};
+  Object.values(CAT_GROUP).forEach(gId => {
+    sections[gId] = { items: [], totals: zero() };
+  });
+
+  const proj = JSON.parse(localStorage.getItem('proyectoData') || 'null');
+  const startDate = proj ? new Date(proj.fechaInicio + 'T00:00:00') : null;
+
+  costosList.forEach(c => {
+    const gId = CAT_GROUP[c.categoria];
+    if (!gId || !sections[gId]) return;
+    const isRec = RECURRENT.has(c.categoria);
+    const itemTotals = zero();
+
+    if (startDate && c.fechaInicio) {
+      const cStart = new Date(c.fechaInicio + 'T00:00:00');
+      const offset = (cStart.getFullYear() - startDate.getFullYear()) * 12
+                   + (cStart.getMonth() - startDate.getMonth());
+      const dur = parseInt(c.duracion) || 1;
+      const val = parseFloat(c.valor) || 0;
+
+      if (isRec) {
+        for (let i = 0; i < dur; i++) {
+          const idx = offset + i;
+          if (idx >= 0 && idx < n) itemTotals[idx] += val;
+        }
+      } else {
+        if (offset >= 0 && offset < n) itemTotals[offset] += val * dur;
+      }
+    }
+
+    sections[gId].items.push({ label: c.descripcion || c.costoId, totals: itemTotals });
+    sections[gId].totals = sections[gId].totals.map((v, i) => v + itemTotals[i]);
+  });
+}
+
+// -------- Computed Ingreso --------
+function computeIngresoCalculado() {
+  const n = periods.length || 12;
+  const negocio = JSON.parse(localStorage.getItem('parametros_negocio') || 'null');
+
+  const totalCAPEX = ['capex_inst','capex_ef','capex_no_ef']
+    .reduce((s, gId) => s + sections[gId].totals.reduce((a,b)=>a+b, 0), 0);
+  const totalOPEX  = ['opex_ef','opex_no_ef','gast_inst','cost_ind','cost_imp','depr','gast_fin']
+    .reduce((s, gId) => s + sections[gId].totals.reduce((a,b)=>a+b, 0), 0);
+
+  const totalCostos = totalCAPEX + totalOPEX;
+  if (totalCostos === 0) return { vals: Array(n).fill(0), totalCAPEX:0, totalOPEX:0, totalCostos:0, baseMonthly:0, fm0:1.3, fs0:1.0 };
+
+  const baseMonthly = totalCostos / n;
+  const vals = (periods.length ? periods : Array(n)).map((_, i) => {
+    const fm = negocio?.factor_multiplicador?.[i] ?? 1.30;
+    const fs = negocio?.factor_sensibilidad?.[i]  ?? 1.00;
+    return baseMonthly * (fm || 1.30) * (fs || 1.00);
+  });
+  const fm0 = negocio?.factor_multiplicador?.[0] ?? 1.30;
+  const fs0 = negocio?.factor_sensibilidad?.[0]  ?? 1.00;
+  return { vals, totalCAPEX, totalOPEX, totalCostos, baseMonthly, fm0, fs0 };
+}
+
+// -------- Compute Flow --------
+function zipAdd(a, b) { return a.map((v,i) => v + (b[i]||0)); }
+function zero(n) { return Array(n).fill(0); }
+
+function computeFlow() {
+  const n = periods.length || 12;
+  const s = sections;
+  const calc = computeIngresoCalculado();
+
+  const totalIngresos = [s.ing.totals, s.ing_inst.totals, calc.vals]
+    .reduce((acc, arr) => zipAdd(acc, arr), zero(n));
+  const totalEgresos = ['opex_ef','opex_no_ef','gast_inst','cost_ind','cost_imp']
+    .reduce((acc, gId) => zipAdd(acc, s[gId].totals), zero(n));
+
+  const EBITDA = totalIngresos.map((v,i) => v - totalEgresos[i]);
+  const totalDepr   = s.depr.totals.slice();
+  const EBIT        = EBITDA.map((v,i) => v - totalDepr[i]);
+  const totalGastFin= s.gast_fin.totals.slice();
+  const totalCAPEX  = ['capex_inst','capex_ef','capex_no_ef']
+    .reduce((acc, gId) => zipAdd(acc, s[gId].totals), zero(n));
+  const FCI  = totalCAPEX.map((v,i) => v - EBITDA[i]);
+  const totalSalv   = s.salv.totals.slice();
+  const FCL  = FCI.map((v,i) => v - totalGastFin[i] + totalSalv[i]);
+
+  return { totalIngresos, totalEgresos, EBITDA, totalDepr, EBIT, totalGastFin, totalCAPEX, FCI, totalSalv, FCL, calc };
+}
+
+// -------- Format --------
+function fmtCur(v, mon) {
+  if (!v && v !== 0) return '—';
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency', currency: mon || 'COP',
+    minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(v);
+}
+
+// -------- KPIs --------
+function renderKPIs(f, mon) {
+  const n = periods.length || 1;
+  const sumArr = arr => arr.reduce((a,b)=>a+b,0);
+
+  const kpis = [
+    { label:'Ingresos Totales', val: sumArr(f.totalIngresos), cls:'green' },
+    { label:'Egresos Totales',  val: sumArr(f.totalEgresos),  cls:'red' },
+    { label:'EBITDA Total',     val: sumArr(f.EBITDA),        cls: sumArr(f.EBITDA)>=0 ? 'green':'red' },
+    { label:'FCL Total',        val: sumArr(f.FCL),           cls: sumArr(f.FCL)>=0 ? 'green':'red' },
+    { label:'CAPEX Total',      val: sumArr(f.totalCAPEX),    cls:'blue' },
+  ];
+
+  document.getElementById('kpiBar').innerHTML = kpis.map(k =>
+    `<div class="stat-item ${k.cls}">
+       <div class="stat-label">${k.label}</div>
+       <div class="stat-value">${fmtCur(k.val, mon)}</div>
+     </div>`
+  ).join('');
+
+  // Pricing formula
+  const c = f.calc;
+  const pDiv = document.getElementById('pricingFormula');
+  if (pDiv && c.totalCostos > 0) {
+    const ingCalcTotal = c.vals.reduce((a,b)=>a+b,0);
+    pDiv.style.display = 'block';
+    pDiv.innerHTML = `⚙ <strong>Fórmula Ingreso Calculado:</strong>
+      (CAPEX ${fmtCur(c.totalCAPEX,mon)} + OPEX ${fmtCur(c.totalOPEX,mon)}) ÷ ${n} meses
+      = base ${fmtCur(c.baseMonthly,mon)}/mes × FM ${c.fm0.toFixed(2)} × FS ${c.fs0.toFixed(2)}
+      = <strong>${fmtCur(c.vals[0],mon)}/mes</strong>
+      | Total: <strong>${fmtCur(ingCalcTotal,mon)}</strong>
+      &nbsp;<a href="parametros.html" style="color:#059669">✎ Editar factores</a>`;
+  } else if (pDiv) {
+    pDiv.style.display = 'none';
+  }
+}
+
+// -------- Render Table --------
+function render() {
+  costosList = JSON.parse(localStorage.getItem('costosData') || '[]');
+  buildSections();
+  const mon = document.getElementById('monedaSel')?.value || 'COP';
+  const f   = computeFlow();
+  const n   = periods.length || 12;
+  const cols = periods.length ? periods : Array.from({length:n},(_,i)=>`Mes ${i+1}`);
+
+  renderKPIs(f, mon);
+
+  // Header
+  document.getElementById('flujoHead').innerHTML = `<tr>
+    <th class="col-sticky">Concepto</th>
+    ${cols.map(p=>`<th>${p}</th>`).join('')}
+    <th class="total-col">TOTAL</th>
+  </tr>`;
+
+  const tbody = document.getElementById('flujoBody');
+  tbody.innerHTML = '';
+  const sumArr = arr => arr.reduce((a,b)=>a+b,0);
+
+  function row(label, vals, cls='', isTotal=false) {
+    const tr = document.createElement('tr');
+    if (cls) tr.className = cls;
+    const total = sumArr(vals);
+    tr.innerHTML = `<td class="col-sticky">${label}</td>
+      ${vals.map(v=>`<td class="num">${v?fmtCur(v,mon):'—'}</td>`).join('')}
+      <td class="num total-col">${fmtCur(total,mon)}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  function sectionHeader(label) {
+    const tr = document.createElement('tr');
+    tr.className = 'section-hdr';
+    tr.innerHTML = `<td class="col-sticky">${label}</td>${Array(n+1).fill('<td></td>').join('')}`;
+    tbody.appendChild(tr);
+  }
+
+  function subHeader(label) {
+    const tr = document.createElement('tr');
+    tr.className = 'sub-hdr';
+    tr.innerHTML = `<td class="col-sticky" style="padding-left:1.5rem">${label}</td>${Array(n+1).fill('<td></td>').join('')}`;
+    tbody.appendChild(tr);
+  }
+
+  // ---- INGRESOS ----
+  sectionHeader('📥 INGRESOS');
+  ['ing','ing_inst'].forEach(gId => {
+    subHeader(SEC_LABELS[gId]);
+    sections[gId].items.forEach(item => row('  └ '+item.label, item.totals));
+    if (sections[gId].items.length > 0) row('  Subtotal '+SEC_LABELS[gId], sections[gId].totals, 'subtotal-row');
+  });
+  // Calculated ingreso row
+  if (f.calc.totalCostos > 0) {
+    const { vals: calcVals, fm0, fs0 } = f.calc;
+    const calcTotal = sumArr(calcVals);
+    const tr = document.createElement('tr');
+    tr.className = 'calc-ing-row';
+    tr.innerHTML = `
+      <td class="col-sticky" title="(CAPEX+OPEX)÷n × FM(${fm0}) × FS(${fs0})">
+        ⚙ Ingreso Calculado [CAPEX+OPEX ÷ n × FM × FS]
+      </td>
+      ${calcVals.map(v=>`<td class="num">${v?fmtCur(v,mon):'—'}</td>`).join('')}
+      <td class="num total-col">${fmtCur(calcTotal,mon)}</td>`;
+    tbody.appendChild(tr);
+  }
+  row('TOTAL INGRESOS', f.totalIngresos, 'subtotal-row');
+
+  // ---- EGRESOS ----
+  sectionHeader('📤 EGRESOS');
+  ['opex_ef','opex_no_ef','gast_inst','cost_ind','cost_imp'].forEach(gId => {
+    subHeader(SEC_LABELS[gId]);
+    sections[gId].items.forEach(item => row('  └ '+item.label, item.totals));
+    if (sections[gId].items.length > 0) row('  Subtotal '+SEC_LABELS[gId], sections[gId].totals, 'subtotal-row');
+  });
+  row('TOTAL EGRESOS', f.totalEgresos, 'subtotal-row');
+
+  // ---- EBITDA ----
+  row('EBITDA', f.EBITDA, 'ebitda-row');
+
+  // ---- DEPRECIACIONES ----
+  sectionHeader('📉 DEPRECIACIONES');
+  sections.depr.items.forEach(item => row('  └ '+item.label, item.totals));
+  row('Total Depreciaciones', f.totalDepr, 'subtotal-row');
+
+  // ---- EBIT ----
+  row('EBIT (Utilidad Operativa)', f.EBIT, 'ebit-row');
+
+  // ---- GASTOS FINANCIEROS ----
+  sectionHeader('🏦 GASTOS FINANCIEROS');
+  sections.gast_fin.items.forEach(item => row('  └ '+item.label, item.totals));
+  row('Total Gastos Financieros', f.totalGastFin, 'subtotal-row');
+
+  // ---- CAPEX ----
+  sectionHeader('🏗 CAPEX');
+  ['capex_inst','capex_ef','capex_no_ef'].forEach(gId => {
+    subHeader(SEC_LABELS[gId]);
+    sections[gId].items.forEach(item => row('  └ '+item.label, item.totals));
+    if (sections[gId].items.length > 0) row('  Subtotal '+SEC_LABELS[gId], sections[gId].totals, 'subtotal-row');
+  });
+  row('TOTAL CAPEX', f.totalCAPEX, 'subtotal-row');
+
+  // ---- FCI ----
+  row('FCI — Flujo de Caja de Inversión', f.FCI, 'fci-row');
+
+  // ---- SALVAMENTO ----
+  sectionHeader('💰 SALVAMENTO');
+  sections.salv.items.forEach(item => row('  └ '+item.label, item.totals));
+  row('Total Salvamento', f.totalSalv, 'subtotal-row');
+
+  // ---- FCL ----
+  row('FCL — Flujo de Caja Libre', f.FCL, 'fcl-row');
+
+  // FCL acumulado
+  let acum = 0;
+  const acumVals = f.FCL.map(v => { acum += v; return acum; });
+  row('FCL Acumulado', acumVals, 'acum-row');
+}
+
+// -------- Toast --------
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+init();
+</script>
+</body>
+</html>

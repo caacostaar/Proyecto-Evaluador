@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProyectoPro — Modelo ER</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="brand">ProyectoPro</a>
+  <a href="index.html">&#128196; Proyecto</a>
+  <a href="costos.html">&#128178; Costos</a>
+  <a href="flujo-caja.html">&#128200; Flujo de Caja</a>
+  <a href="parametros.html">&#9881; Parámetros</a>
+  <a href="er-model.html" class="active">&#128196; ER</a>
+  <div class="spacer"></div>
+</nav>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('er')">Diagrama ER</button>
+    <button class="tab-btn" onclick="switchTab('perfiles')">Perfiles de Acceso</button>
+    <button class="tab-btn" onclick="switchTab('permisos')">Matriz de Permisos</button>
+    <button class="tab-btn" onclick="switchTab('arq')">Arquitectura</button>
+    <button class="tab-btn" onclick="switchTab('flujo')">Flujo de Negocio</button>
+  </div>
+
+  <!-- ER Diagram -->
+  <div id="tab-er" class="tab-content active">
+    <div class="card">
+      <h2>&#128196; Modelo Entidad-Relación</h2>
+      <div class="mermaid">
+erDiagram
+  PLANES {
+    CHAR id PK
+    VARCHAR nombre
+    VARCHAR codigo
+    DECIMAL precio_mensual
+    DECIMAL precio_anual
+    INT max_proyectos
+    INT max_usuarios
+    TINYINT activo
+  }
+  EMPRESAS {
+    CHAR id PK
+    VARCHAR nit
+    VARCHAR razon_social
+    VARCHAR email_contacto
+    CHAR plan_id FK
+    VARCHAR schema_name
+    ENUM estado
+    DATE trial_hasta
+  }
+  PERFILES {
+    CHAR id PK
+    VARCHAR codigo
+    VARCHAR nombre
+    INT nivel
+  }
+  USUARIOS {
+    CHAR id PK
+    CHAR empresa_id FK
+    CHAR perfil_id FK
+    VARCHAR nombre
+    VARCHAR email
+    VARCHAR password_hash
+    TINYINT activo
+  }
+  SUSCRIPCIONES {
+    CHAR id PK
+    CHAR empresa_id FK
+    CHAR plan_id FK
+    ENUM periodicidad
+    DATE fecha_inicio
+    DECIMAL monto
+    ENUM estado
+  }
+  PAGOS {
+    CHAR id PK
+    CHAR suscripcion_id FK
+    DECIMAL monto
+    VARCHAR referencia_payu
+    VARCHAR estado_payu
+    JSON respuesta_completa
+  }
+  PROYECTOS {
+    CHAR id PK
+    VARCHAR nit_empresa
+    VARCHAR nombre_proyecto
+    DATE fecha_inicio
+    INT tiempo_contrato
+    VARCHAR tipo_moneda
+    ENUM estado
+  }
+  COSTOS {
+    CHAR id PK
+    CHAR proyecto_id FK
+    VARCHAR costoId
+    VARCHAR familia
+    ENUM categoria
+    DECIMAL valor
+    DATE fecha_inicio
+    INT duracion
+    VARCHAR moneda
+  }
+  INDICADORES_MACRO {
+    CHAR id PK
+    CHAR proyecto_id FK
+    DATE periodo
+    DECIMAL trm
+    DECIMAL ipc
+    DECIMAL inflacion
+    DECIMAL dtf
+    DECIMAL ibr
+  }
+  WACC_MENSUAL {
+    CHAR id PK
+    CHAR proyecto_id FK
+    DATE periodo
+    DECIMAL wacc_cop
+    DECIMAL wacc_usd
+  }
+  PARAMETROS_IMPOSITIVOS {
+    CHAR id PK
+    CHAR proyecto_id FK
+    DATE periodo
+    DECIMAL renta
+    DECIMAL iva
+    DECIMAL retencion
+    DECIMAL ica
+  }
+  PARAMETRICAS_NEGOCIO {
+    CHAR id PK
+    CHAR proyecto_id FK
+    DATE periodo
+    DECIMAL margen_objetivo
+    DECIMAL factor_multiplicador
+    DECIMAL factor_sensibilidad
+    DECIMAL tasa_descuento
+  }
+
+  PLANES         ||--o{ EMPRESAS           : "tiene"
+  PLANES         ||--o{ SUSCRIPCIONES      : "define"
+  EMPRESAS       ||--o{ USUARIOS           : "tiene"
+  EMPRESAS       ||--o{ SUSCRIPCIONES      : "contrata"
+  SUSCRIPCIONES  ||--o{ PAGOS              : "genera"
+  PERFILES       ||--o{ USUARIOS           : "asignado a"
+  PROYECTOS      ||--o{ COSTOS             : "contiene"
+  PROYECTOS      ||--o{ INDICADORES_MACRO  : "parametriza"
+  PROYECTOS      ||--o{ WACC_MENSUAL       : "parametriza"
+  PROYECTOS      ||--o{ PARAMETROS_IMPOSITIVOS : "parametriza"
+  PROYECTOS      ||--o{ PARAMETRICAS_NEGOCIO   : "parametriza"
+      </div>
+    </div>
+  </div>
+
+  <!-- Perfiles -->
+  <div id="tab-perfiles" class="tab-content">
+    <div class="card">
+      <h2>&#128101; Perfiles de Acceso</h2>
+      <table class="data-table">
+        <thead>
+          <tr><th>Perfil</th><th>Nivel</th><th>Descripción</th><th>Casos de uso</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-gray">Usuario Final</span></td>
+            <td>1</td>
+            <td>Consulta proyectos y genera reportes. No puede modificar parámetros restringidos.</td>
+            <td>Cliente que revisa el estado del proyecto</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-blue">Preventa</span></td>
+            <td>2</td>
+            <td>Crea y modifica proyectos, ajusta factores de sensibilidad para cotizaciones.</td>
+            <td>Consultor comercial que prepara propuestas</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-orange">Administrador</span></td>
+            <td>3</td>
+            <td>Gestión completa de proyectos, usuarios del tenant y todos los parámetros.</td>
+            <td>Director de proyectos, gerente de operaciones</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-red">Super Admin</span></td>
+            <td>4</td>
+            <td>Acceso total a la plataforma, gestión de tenants, planes y configuración global.</td>
+            <td>Equipo técnico de ProyectoPro</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Permisos -->
+  <div id="tab-permisos" class="tab-content">
+    <div class="card">
+      <h2>&#128274; Matriz de Permisos</h2>
+      <div class="table-wrap">
+        <table class="data-table" style="font-size:.82rem">
+          <thead>
+            <tr>
+              <th>Acción</th>
+              <th class="center">Usuario Final</th>
+              <th class="center">Preventa</th>
+              <th class="center">Administrador</th>
+              <th class="center">Super Admin</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" style="background:#f0f4f8;font-weight:700;color:#334155">PROYECTOS</td></tr>
+            <tr><td>Ver proyectos</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Crear proyecto</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Editar proyecto</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Eliminar proyecto</td><td class="center">—</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td colspan="5" style="background:#f0f4f8;font-weight:700;color:#334155">COSTOS</td></tr>
+            <tr><td>Ver costos</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Crear / Editar costos</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Eliminar costos</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td colspan="5" style="background:#f0f4f8;font-weight:700;color:#334155">PARÁMETROS</td></tr>
+            <tr><td>Ver parámetros</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Editar macro / WACC / impositivos</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Editar Factor Multiplicador</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td style="font-weight:600;color:#b45309">Editar Factor Sensibilidad ⚠</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td colspan="5" style="background:#f0f4f8;font-weight:700;color:#334155">USUARIOS / EMPRESA</td></tr>
+            <tr><td>Ver usuarios</td><td class="center">—</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Crear / Gestionar usuarios</td><td class="center">—</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Gestionar tenants y planes</td><td class="center">—</td><td class="center">—</td><td class="center">—</td><td class="center">&#10003;</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arquitectura -->
+  <div id="tab-arq" class="tab-content">
+    <div class="card">
+      <h2>&#127959; Arquitectura Multi-Tenant</h2>
+      <div class="mermaid">
+graph TB
+  subgraph Internet
+    U[Usuario]
+    PAY[PayU Colombia]
+  end
+  subgraph "ProyectoPro SaaS"
+    FE[Frontend HTML/CSS/JS]
+    API[API Backend]
+    AUTH[Auth Service JWT]
+    subgraph "MySQL Server"
+      MASTER[(saas_master)]
+      T1[(co_9001234567)]
+      T2[(co_8002345678)]
+      TN[(co_...n)]
+    end
+  end
+  U --> FE
+  FE --> API
+  API --> AUTH
+  API --> MASTER
+  AUTH --> MASTER
+  API --> T1
+  API --> T2
+  API --> TN
+  U --> PAY
+  PAY --> API
+      </div>
+    </div>
+  </div>
+
+  <!-- Flujo de Negocio -->
+  <div id="tab-flujo" class="tab-content">
+    <div class="card">
+      <h2>&#128202; Flujo de Cálculo Financiero</h2>
+      <div class="mermaid">
+flowchart TD
+  A[Datos del Proyecto\nnombre, NIT, fechas, moneda] --> B
+  B[Registro de Costos\n13 categorías: ingreso, OPEX, CAPEX,\ndepreciación, gastos fin., salvamento] --> C
+  C[Tablas Paramétricas\nMacro · WACC · Impositivos · Negocio] --> D
+
+  subgraph "Ingreso Calculado (auto)"
+    D[FM = Factor Multiplicador\nFS = Factor Sensibilidad\n⚠ FS restringido por rol]
+    D --> IC["Ingreso = (CAPEX + OPEX) ÷ n × FM × FS"]
+  end
+
+  IC --> ING[Total Ingresos\nIngreso + Ing.Inst + Ing.Calculado]
+  B --> EGR[Total Egresos\nOPEX ef. + OPEX no ef. + Gastos inst.\n+ Costos ind. + Costos imp.]
+  ING --> EBITDA[EBITDA = Ingresos - Egresos]
+  EGR --> EBITDA
+  EBITDA --> EBIT[EBIT = EBITDA - Depreciaciones]
+  EBIT --> KPI1[VPN · TIR · Payback]
+
+  B --> FCI[FCI = CAPEX - EBITDA]
+  FCI --> FCL[FCL = FCI - Gastos Fin. + Salvamento]
+  FCL --> KPI2[Flujo Acumulado\nEvaluación viabilidad]
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+mermaid.initialize({ startOnLoad: true, theme: 'default', er: { diagramPadding: 20 } });
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const ids = ['er','perfiles','permisos','arq','flujo'];
+    b.classList.toggle('active', ids[i] === id);
+  });
+  document.getElementById('tab-' + id).classList.add('active');
+}
+</script>
+</body>
+</html>

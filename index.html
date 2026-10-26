@@ -1,12 +1,156 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hola Mundo</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProyectoPro — Datos del Proyecto</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <p>hola mundo, hola familia ya puedo programar en web</p>
+
+<nav class="navbar">
+  <a href="index.html" class="brand">ProyectoPro</a>
+  <a href="index.html" class="active">&#128196; Proyecto</a>
+  <a href="costos.html">&#128178; Costos</a>
+  <a href="flujo-caja.html">&#128200; Flujo de Caja</a>
+  <a href="parametros.html">&#9881; Parámetros</a>
+  <div class="spacer"></div>
+  <span id="projectChip" class="project-chip hidden"></span>
+  <span id="userBadge" class="user-badge hidden"></span>
+</nav>
+
+<div class="container">
+  <div class="card">
+    <h2><span class="icon">&#128196;</span> Datos Generales del Proyecto</h2>
+    <form id="proyectoForm" class="form-grid">
+      <div class="form-group">
+        <label for="nit">NIT Empresa</label>
+        <input type="text" id="nit" name="nit" placeholder="900.123.456-7" required>
+      </div>
+      <div class="form-group">
+        <label for="nombre">Razón Social</label>
+        <input type="text" id="nombre" name="nombre" placeholder="Empresa S.A.S." required>
+      </div>
+      <div class="form-group" style="grid-column: 1 / -1">
+        <label for="nombreProyecto">Nombre del Proyecto</label>
+        <input type="text" id="nombreProyecto" name="nombreProyecto" placeholder="Implementación Sistema ERP" required>
+      </div>
+      <div class="form-group">
+        <label for="idProyecto">ID del Proyecto</label>
+        <input type="text" id="idProyecto" name="idProyecto" placeholder="PRY-2024-001">
+      </div>
+      <div class="form-group">
+        <label for="fechaInicio">Fecha de Inicio</label>
+        <input type="date" id="fechaInicio" name="fechaInicio" required>
+      </div>
+      <div class="form-group">
+        <label for="tiempoContrato">Duración (meses)</label>
+        <input type="number" id="tiempoContrato" name="tiempoContrato" min="1" max="120" value="12" required>
+      </div>
+      <div class="form-group">
+        <label for="plazoPago">Plazo de Pago (días)</label>
+        <input type="number" id="plazoPago" name="plazoPago" min="0" max="360" value="30">
+      </div>
+      <div class="form-group">
+        <label for="tipoMoneda">Moneda</label>
+        <select id="tipoMoneda" name="tipoMoneda">
+          <option value="COP">COP — Peso Colombiano</option>
+          <option value="USD">USD — Dólar Americano</option>
+          <option value="EUR">EUR — Euro</option>
+        </select>
+      </div>
+    </form>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="guardar()">&#128190; Guardar Proyecto</button>
+    <button class="btn btn-secondary" onclick="limpiar()">&#128465; Limpiar</button>
+    <a href="costos.html" class="btn btn-secondary">&#8594; Ir a Costos</a>
+  </div>
+
+  <div id="savedInfo" class="card mt-4 hidden">
+    <h2><span class="icon">&#10003;</span> Proyecto Guardado</h2>
+    <div id="savedContent" class="form-grid text-sm"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const FIELDS = ['nit','nombre','nombreProyecto','idProyecto','fechaInicio','tiempoContrato','plazoPago','tipoMoneda'];
+const KEY = 'proyectoData';
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function loadFromStorage() {
+  const data = JSON.parse(localStorage.getItem(KEY) || 'null');
+  if (!data) return;
+  FIELDS.forEach(f => {
+    const el = document.getElementById(f);
+    if (el && data[f] != null) el.value = data[f];
+  });
+  showSaved(data);
+}
+
+function showSaved(data) {
+  const el = document.getElementById('savedContent');
+  const labels = {
+    nit: 'NIT', nombre: 'Empresa', nombreProyecto: 'Proyecto',
+    idProyecto: 'ID', fechaInicio: 'Inicio', tiempoContrato: 'Duración (meses)',
+    plazoPago: 'Plazo pago (días)', tipoMoneda: 'Moneda'
+  };
+  el.innerHTML = FIELDS.map(f => data[f]
+    ? `<div class="form-group"><label>${labels[f]}</label><p style="padding:.4rem 0">${data[f]}</p></div>`
+    : '').join('');
+  document.getElementById('savedInfo').classList.remove('hidden');
+
+  const chip = document.getElementById('projectChip');
+  chip.textContent = data.nombreProyecto || '';
+  chip.classList.toggle('hidden', !data.nombreProyecto);
+}
+
+function guardar() {
+  const form = document.getElementById('proyectoForm');
+  if (!form.checkValidity()) { form.reportValidity(); return; }
+  const data = {};
+  FIELDS.forEach(f => {
+    const el = document.getElementById(f);
+    data[f] = el ? el.value : '';
+  });
+  localStorage.setItem(KEY, JSON.stringify(data));
+  showSaved(data);
+  showToast('Proyecto guardado correctamente');
+}
+
+function limpiar() {
+  if (!confirm('¿Limpiar los datos del formulario?')) return;
+  FIELDS.forEach(f => {
+    const el = document.getElementById(f);
+    if (el) el.value = f === 'tiempoContrato' ? '12' : f === 'plazoPago' ? '30' : f === 'tipoMoneda' ? 'COP' : '';
+  });
+  localStorage.removeItem(KEY);
+  document.getElementById('savedInfo').classList.add('hidden');
+  showToast('Formulario limpiado', 'error');
+}
+
+// Auth badge
+(function() {
+  try {
+    const auth = JSON.parse(localStorage.getItem('_proyectopro_auth') || 'null');
+    if (auth?.usuario?.nombre) {
+      const b = document.getElementById('userBadge');
+      b.textContent = auth.usuario.nombre + ' · ' + (auth.perfil?.nombre || '');
+      b.classList.remove('hidden');
+    }
+  } catch(e) {}
+})();
+
+loadFromStorage();
+</script>
 </body>
 </html>

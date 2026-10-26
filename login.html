@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProyectoPro — Acceso</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--clr-primary); }
+    .login-box { background: var(--clr-surface); border-radius: .75rem; box-shadow: 0 20px 60px rgba(0,0,0,.4); padding: 2.5rem; width: 90%; max-width: 460px; }
+    .login-logo { text-align: center; margin-bottom: 1.75rem; }
+    .login-logo .brand-name { font-size: 1.6rem; font-weight: 800; color: var(--clr-accent); }
+    .login-logo .subtitle { color: var(--clr-muted); font-size: .85rem; margin-top: .25rem; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .step-indicator { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+    .step-dot { flex: 1; height: 4px; border-radius: 2px; background: var(--clr-border); }
+    .step-dot.done { background: var(--clr-accent); }
+  </style>
+</head>
+<body>
+<div class="login-box">
+  <div class="login-logo">
+    <div class="brand-name">ProyectoPro</div>
+    <div class="subtitle">Evaluador Financiero de Proyectos</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchMode('login')">Ingresar</button>
+    <button class="tab-btn" onclick="switchMode('register')">Registrar Empresa</button>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="loginPanel" class="tab-content active">
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="loginEmail" placeholder="usuario@empresa.co">
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="loginPass" placeholder="••••••••">
+      </div>
+    </div>
+    <div class="btn-group mt-4">
+      <button class="btn btn-primary w-full" onclick="doLogin()">Ingresar</button>
+    </div>
+    <p class="text-muted mt-2" style="font-size:.78rem">
+      Modo demo: use cualquier correo y contraseña.<br>
+      Para probar perfiles diferentes seleccione uno abajo.
+    </p>
+    <div class="form-group mt-2">
+      <label>Perfil de acceso (demo)</label>
+      <select id="demoProfile">
+        <option value="usuario_final">Usuario Final</option>
+        <option value="preventa">Preventa</option>
+        <option value="administrador" selected>Administrador</option>
+        <option value="super_admin">Super Admin</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- REGISTRO -->
+  <div id="registerPanel" class="tab-content">
+    <div class="step-indicator">
+      <div class="step-dot done" id="sd1"></div>
+      <div class="step-dot" id="sd2"></div>
+      <div class="step-dot" id="sd3"></div>
+    </div>
+
+    <div id="step1" class="step active">
+      <h3 class="mb-2">Paso 1: Datos de la Empresa</h3>
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="form-group"><label>NIT</label><input type="text" id="rNit" placeholder="900.123.456-7"></div>
+        <div class="form-group"><label>Razón Social</label><input type="text" id="rRazon" placeholder="Mi Empresa S.A.S."></div>
+        <div class="form-group"><label>Ciudad</label><input type="text" id="rCiudad" placeholder="Bogotá"></div>
+      </div>
+      <button class="btn btn-primary mt-4" onclick="nextStep(2)">Siguiente &rarr;</button>
+    </div>
+
+    <div id="step2" class="step">
+      <h3 class="mb-2">Paso 2: Administrador</h3>
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="form-group"><label>Nombre completo</label><input type="text" id="rNombre" placeholder="Juan Pérez"></div>
+        <div class="form-group"><label>Correo</label><input type="email" id="rEmail" placeholder="admin@empresa.co"></div>
+        <div class="form-group"><label>Contraseña</label><input type="password" id="rPass" placeholder="Mín. 8 caracteres"></div>
+      </div>
+      <div class="btn-group mt-4">
+        <button class="btn btn-secondary" onclick="nextStep(1)">&larr; Atrás</button>
+        <button class="btn btn-primary" onclick="nextStep(3)">Siguiente &rarr;</button>
+      </div>
+    </div>
+
+    <div id="step3" class="step">
+      <h3 class="mb-2">Paso 3: Seleccionar Plan</h3>
+      <div style="display:grid;gap:.75rem;margin-bottom:1rem">
+        <label style="display:flex;gap:.75rem;align-items:center;padding:.75rem;border:1px solid var(--clr-border);border-radius:var(--radius);cursor:pointer">
+          <input type="radio" name="plan" value="basico"> <span><strong>Básico</strong> — $49.900/mes · 3 proyectos · 2 usuarios</span>
+        </label>
+        <label style="display:flex;gap:.75rem;align-items:center;padding:.75rem;border:2px solid var(--clr-accent);border-radius:var(--radius);cursor:pointer">
+          <input type="radio" name="plan" value="profesional" checked> <span><strong>Profesional</strong> — $149.900/mes · 10 proyectos · 5 usuarios</span>
+        </label>
+        <label style="display:flex;gap:.75rem;align-items:center;padding:.75rem;border:1px solid var(--clr-border);border-radius:var(--radius);cursor:pointer">
+          <input type="radio" name="plan" value="empresarial"> <span><strong>Empresarial</strong> — $399.900/mes · 50 proyectos · 20 usuarios</span>
+        </label>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="nextStep(2)">&larr; Atrás</button>
+        <button class="btn btn-primary" onclick="doRegister()">&#10003; Crear Cuenta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const PERFILES = {
+  usuario_final: { codigo:'usuario_final', nombre:'Usuario Final', nivel:1 },
+  preventa:      { codigo:'preventa',      nombre:'Preventa',      nivel:2 },
+  administrador: { codigo:'administrador', nombre:'Administrador', nivel:3 },
+  super_admin:   { codigo:'super_admin',   nombre:'Super Admin',   nivel:4 },
+};
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function switchMode(mode) {
+  document.getElementById('loginPanel').classList.toggle('active', mode === 'login');
+  document.getElementById('registerPanel').classList.toggle('active', mode === 'register');
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0) === (mode==='login')));
+}
+
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const perfil = document.getElementById('demoProfile').value;
+  if (!email) { showToast('Ingrese un correo', 'error'); return; }
+  const auth = {
+    usuario: { id: 'demo-001', nombre: email.split('@')[0], email },
+    empresa: { id: 'demo-emp', nit: '900.123.456-7', razon_social: 'Empresa Demo' },
+    perfil: PERFILES[perfil],
+    token: 'demo-jwt-token-' + Date.now(),
+    loggedAt: new Date().toISOString(),
+  };
+  localStorage.setItem('_proyectopro_auth', JSON.stringify(auth));
+  showToast('Bienvenido, ' + auth.usuario.nombre);
+  setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+}
+
+function nextStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+  [1,2,3].forEach(i => document.getElementById('sd'+i).classList.toggle('done', i <= n));
+}
+
+function doRegister() {
+  const nit   = document.getElementById('rNit').value.trim();
+  const razon = document.getElementById('rRazon').value.trim();
+  const email = document.getElementById('rEmail').value.trim();
+  if (!nit || !razon || !email) { showToast('Complete todos los campos', 'error'); return; }
+  const auth = {
+    usuario: { id: 'new-001', nombre: document.getElementById('rNombre').value || email, email },
+    empresa: { id: 'new-emp', nit, razon_social: razon, ciudad: document.getElementById('rCiudad').value },
+    perfil: PERFILES['administrador'],
+    plan: document.querySelector('input[name=plan]:checked')?.value || 'profesional',
+    token: 'new-jwt-' + Date.now(),
+    loggedAt: new Date().toISOString(),
+  };
+  localStorage.setItem('_proyectopro_auth', JSON.stringify(auth));
+  showToast('Cuenta creada. Redirigiendo...');
+  setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+}
+</script>
+</body>
+</html>

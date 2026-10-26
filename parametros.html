@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProyectoPro — Parámetros</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="brand">ProyectoPro</a>
+  <a href="index.html">&#128196; Proyecto</a>
+  <a href="costos.html">&#128178; Costos</a>
+  <a href="flujo-caja.html">&#128200; Flujo de Caja</a>
+  <a href="parametros.html" class="active">&#9881; Parámetros</a>
+  <div class="spacer"></div>
+  <span id="projectChip" class="project-chip hidden"></span>
+  <span id="userBadge" class="user-badge hidden"></span>
+</nav>
+
+<div class="container">
+  <div class="card">
+    <h2><span class="icon">&#9881;</span> Tablas Paramétricas</h2>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('macro')">&#127758; Macroeconómicos</button>
+      <button class="tab-btn" onclick="switchTab('wacc')">&#128200; WACC</button>
+      <button class="tab-btn" onclick="switchTab('impositivos')">&#128179; Impositivos</button>
+      <button class="tab-btn" onclick="switchTab('negocio')">&#127970; Negocio</button>
+    </div>
+
+    <div id="tabContent"></div>
+
+    <div class="btn-group mt-4">
+      <button class="btn btn-primary" onclick="saveAll()">&#128190; Guardar Todos</button>
+      <button class="btn btn-secondary" onclick="loadDefaults()">&#127475;&#127476; Valores Colombia</button>
+      <a href="flujo-caja.html" class="btn btn-secondary">&#128200; Ver Flujo de Caja</a>
+    </div>
+    <p id="restrictMsg" class="text-muted mt-2 hidden" style="color:#f59e0b">
+      &#9888; El Factor de Sensibilidad solo puede ser modificado por Administrador, Preventa o Super Admin.
+    </p>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// -------- Config --------
+const TABS = {
+  macro: {
+    label: 'Macroeconómicos',
+    key: 'parametros_macro',
+    rows: [
+      { id:'trm',         label:'TRM (COP/USD)',           unit:'COP',  def:4150 },
+      { id:'ipc',         label:'IPC mensual (%)',          unit:'%',    def:0.50 },
+      { id:'inflacion',   label:'Inflación mensual (%)',    unit:'%',    def:0.50 },
+      { id:'dtf',         label:'DTF E.A. (%)',             unit:'%',    def:11.50 },
+      { id:'ibr',         label:'IBR nominal mes vencido (%)', unit:'%', def:11.25 },
+      { id:'devaluacion', label:'Devaluación mensual (%)', unit:'%',    def:0.30 },
+    ]
+  },
+  wacc: {
+    label: 'WACC',
+    key: 'parametros_wacc',
+    rows: [
+      { id:'wacc_cop', label:'WACC COP (%)', unit:'%', def:18.50 },
+      { id:'wacc_usd', label:'WACC USD (%)', unit:'%', def:12.00 },
+    ]
+  },
+  impositivos: {
+    label: 'Impositivos',
+    key: 'parametros_impositivos',
+    rows: [
+      { id:'renta',     label:'Impuesto de Renta (%)',        unit:'%', def:35 },
+      { id:'iva',       label:'IVA (%)',                       unit:'%', def:19 },
+      { id:'retencion', label:'Retención en la Fuente (%)',   unit:'%', def:3.5 },
+      { id:'ica',       label:'ICA (%)',                       unit:'%', def:0.69 },
+      { id:'gmf',       label:'GMF — 4×1000 (%)',             unit:'%', def:0.4 },
+    ]
+  },
+  negocio: {
+    label: 'Negocio',
+    key: 'parametros_negocio',
+    rows: [
+      { id:'margen_objetivo',       label:'Margen Objetivo (%)',            unit:'%',  def:20 },
+      { id:'crecimiento_ingresos',  label:'Crecimiento Ingresos mensual (%)', unit:'%', def:1 },
+      { id:'vida_util_activos',     label:'Vida Útil Activos (meses)',      unit:'mes', def:60 },
+      { id:'tasa_descuento',        label:'Tasa de Descuento (%)',          unit:'%',  def:15 },
+      { id:'factor_multiplicador',  label:'Factor Multiplicador (FM)',      unit:'x',  def:1.30 },
+      { id:'factor_sensibilidad',   label:'Factor de Sensibilidad (FS) ⚠', unit:'x',  def:1.00, restricted:true },
+    ]
+  },
+};
+
+let currentTab = 'macro';
+let data = {};
+let periods = [];
+
+// -------- Auth --------
+function getRole() {
+  try {
+    const auth = JSON.parse(localStorage.getItem('_proyectopro_auth') || 'null');
+    return auth?.perfil?.codigo || 'usuario_final';
+  } catch(e) { return 'usuario_final'; }
+}
+function canEditSens() {
+  return ['administrador','super_admin','preventa'].includes(getRole());
+}
+
+// -------- Init --------
+function init() {
+  const proj = JSON.parse(localStorage.getItem('proyectoData') || 'null');
+  if (proj) {
+    const chip = document.getElementById('projectChip');
+    chip.textContent = proj.nombreProyecto;
+    chip.classList.remove('hidden');
+    buildPeriods(proj);
+  }
+  // Load stored data
+  Object.keys(TABS).forEach(tabId => {
+    data[tabId] = JSON.parse(localStorage.getItem(TABS[tabId].key) || 'null') || {};
+  });
+  // Restrict message
+  if (!canEditSens()) {
+    document.getElementById('restrictMsg').classList.remove('hidden');
+  }
+  // Auth badge
+  try {
+    const auth = JSON.parse(localStorage.getItem('_proyectopro_auth') || 'null');
+    if (auth?.usuario?.nombre) {
+      const b = document.getElementById('userBadge');
+      b.textContent = auth.usuario.nombre + ' · ' + (auth.perfil?.nombre || '');
+      b.classList.remove('hidden');
+    }
+  } catch(e) {}
+  renderTable(currentTab);
+}
+
+function buildPeriods(proj) {
+  const start = new Date(proj.fechaInicio + 'T00:00:00');
+  const n = parseInt(proj.tiempoContrato) || 12;
+  periods = [];
+  for (let i = 0; i < n; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+    periods.push(d.toLocaleDateString('es-CO', { month:'short', year:'2-digit' }));
+  }
+}
+
+// -------- Render --------
+function switchTab(tabId) {
+  currentTab = tabId;
+  document.querySelectorAll('.tab-btn').forEach((b,i) =>
+    b.classList.toggle('active', Object.keys(TABS)[i] === tabId));
+  renderTable(tabId);
+}
+
+function renderTable(tabId) {
+  const tab = TABS[tabId];
+  const stored = data[tabId] || {};
+  const n = periods.length || 12;
+  const cols = periods.length ? periods : Array.from({length:n}, (_,i) => `Mes ${i+1}`);
+
+  let html = `<div class="param-table-wrap"><table class="param-table">
+    <thead><tr>
+      <th class="row-label">Parámetro</th>
+      <th style="width:50px">→→</th>
+      ${cols.map(p => `<th>${p}</th>`).join('')}
+    </tr></thead>
+    <tbody>`;
+
+  tab.rows.forEach(row => {
+    const vals = stored[row.id] || Array(n).fill(row.def);
+    html += `<tr>
+      <td class="row-label">${row.label}<br><small class="text-muted">${row.unit}</small></td>
+      <td><button class="copy-btn" data-row="${row.id}" onclick="copyFirst('${tabId}','${row.id}')" title="Copiar primer valor a todos">→→</button></td>
+      ${cols.map((_, i) => `<td><input type="number" step="any"
+        data-tab="${tabId}" data-row="${row.id}" data-idx="${i}"
+        value="${vals[i] ?? row.def}"
+        oninput="onInput('${tabId}','${row.id}',${i},this.value)"></td>`).join('')}
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  document.getElementById('tabContent').innerHTML = html;
+
+  // Apply role restriction for factor_sensibilidad
+  if (tabId === 'negocio' && !canEditSens()) {
+    document.querySelectorAll(`input[data-row="factor_sensibilidad"]`).forEach(inp => {
+      inp.disabled = true;
+      inp.style.background = '#f1f5f9';
+      inp.style.cursor = 'not-allowed';
+      inp.style.color = '#94a3b8';
+    });
+    const cb = document.querySelector('.copy-btn[data-row="factor_sensibilidad"]');
+    if (cb) { cb.disabled = true; cb.style.opacity = '0.35'; }
+  }
+}
+
+function onInput(tabId, rowId, idx, val) {
+  if (!data[tabId]) data[tabId] = {};
+  const tab = TABS[tabId];
+  const row = tab.rows.find(r => r.id === rowId);
+  const n = periods.length || 12;
+  if (!data[tabId][rowId]) data[tabId][rowId] = Array(n).fill(row.def);
+  data[tabId][rowId][idx] = parseFloat(val) || 0;
+}
+
+function copyFirst(tabId, rowId) {
+  if (!data[tabId]) data[tabId] = {};
+  const tab = TABS[tabId];
+  const row = tab.rows.find(r => r.id === rowId);
+  const n = periods.length || 12;
+  if (!data[tabId][rowId]) data[tabId][rowId] = Array(n).fill(row.def);
+  const first = data[tabId][rowId][0];
+  data[tabId][rowId] = data[tabId][rowId].map(() => first);
+  renderTable(tabId);
+  showToast(`Valor ${first} copiado a todos los meses`);
+}
+
+// -------- Save --------
+function saveAll() {
+  const role = getRole();
+  const canSens = canEditSens();
+
+  Object.keys(TABS).forEach(tabId => {
+    const tab = TABS[tabId];
+    const n = periods.length || 12;
+    // Read current inputs for active tab or use in-memory data
+    if (tabId === currentTab) {
+      document.querySelectorAll(`input[data-tab="${tabId}"]`).forEach(inp => {
+        const rowId = inp.dataset.row;
+        const idx   = parseInt(inp.dataset.idx);
+        if (!data[tabId]) data[tabId] = {};
+        if (!data[tabId][rowId]) {
+          const row = tab.rows.find(r => r.id === rowId);
+          data[tabId][rowId] = Array(n).fill(row.def);
+        }
+        data[tabId][rowId][idx] = parseFloat(inp.value) || 0;
+      });
+    }
+
+    let toSave = data[tabId] || {};
+    // Protect factor_sensibilidad for restricted roles
+    if (tabId === 'negocio' && !canSens) {
+      const prev = JSON.parse(localStorage.getItem(tab.key) || 'null');
+      toSave = { ...toSave };
+      if (prev?.factor_sensibilidad) toSave.factor_sensibilidad = prev.factor_sensibilidad;
+    }
+    localStorage.setItem(tab.key, JSON.stringify(toSave));
+  });
+  showToast('Parámetros guardados correctamente');
+}
+
+// -------- Defaults --------
+function loadDefaults() {
+  if (!confirm('¿Cargar valores por defecto para Colombia? Se sobrescribirán los valores actuales.')) return;
+  Object.keys(TABS).forEach(tabId => {
+    const n = periods.length || 12;
+    data[tabId] = {};
+    TABS[tabId].rows.forEach(row => {
+      data[tabId][row.id] = Array(n).fill(row.def);
+    });
+  });
+  renderTable(currentTab);
+  showToast('Valores Colombia cargados');
+}
+
+// -------- Toast --------
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+init();
+</script>
+</body>
+</html>
