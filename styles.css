@@ -71,6 +71,32 @@ body {
   border-radius: 999px;
 }
 
+.nav-logout {
+  background: none;
+  border: 1px solid rgba(255,255,255,.25);
+  color: #cbd5e1;
+  padding: .25rem .7rem;
+  border-radius: var(--radius);
+  font-size: .8rem;
+  cursor: pointer;
+}
+.nav-logout:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+/* ---- Alerts ---- */
+.alert {
+  padding: .65rem .9rem;
+  border-radius: var(--radius);
+  font-size: .85rem;
+  margin-bottom: 1rem;
+  border: 1px solid;
+}
+.alert-info  { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+.alert-warn  { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.alert-error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.alert-ok    { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+
+.data-table tbody tr.row-actual { background: #f0fdf4; }
+
 /* ---- Project chip ---- */
 .project-chip {
   font-size: 0.7rem;
@@ -284,6 +310,7 @@ table.data-table {
 .flujo-table th.col-sticky { z-index: 3; background: var(--clr-primary); color: #e2e8f0; }
 .flujo-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .flujo-table .total-col { font-weight: 700; background: #f1f5f9; }
+.flujo-table th.total-col { background: var(--clr-primary); color: #fff; }
 
 /* Flujo row types */
 .flujo-table .section-hdr td {
@@ -316,8 +343,10 @@ table.data-table {
 .ebit-row td   { background: #0c4a6e; color: #bae6fd; font-weight: 700; }
 .fci-row td    { background: #3b0764; color: #e9d5ff; font-weight: 700; }
 .fcl-row td    { background: #431407; color: #fed7aa; font-weight: 700; border-top: 3px solid #ea580c; }
-.ebitda-row td.col-sticky, .ebit-row td.col-sticky,
-.fci-row td.col-sticky, .fcl-row td.col-sticky { background: inherit; }
+.flujo-table .ebitda-row td.col-sticky, .flujo-table .ebitda-row td.total-col { background: #064e3b; }
+.flujo-table .ebit-row td.col-sticky,   .flujo-table .ebit-row td.total-col   { background: #0c4a6e; }
+.flujo-table .fci-row td.col-sticky,    .flujo-table .fci-row td.total-col    { background: #3b0764; }
+.flujo-table .fcl-row td.col-sticky,    .flujo-table .fcl-row td.total-col    { background: #431407; }
 
 /* Ingreso calculado */
 .calc-ing-row td { background: #f0fdf4; font-style: italic; }

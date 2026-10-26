@@ -8,153 +8,84 @@
 </head>
 <body>
 
-<nav class="navbar">
-  <a href="index.html" class="brand">ProyectoPro</a>
-  <a href="index.html">&#128196; Proyecto</a>
-  <a href="costos.html" class="active">&#128178; Costos</a>
-  <a href="flujo-caja.html">&#128200; Flujo de Caja</a>
-  <a href="parametros.html">&#9881; Parámetros</a>
-  <div class="spacer"></div>
-  <span id="projectChip" class="project-chip hidden"></span>
-  <span id="userBadge" class="user-badge hidden"></span>
-</nav>
+<nav id="navbar" class="navbar"></nav>
 
 <div class="container">
 
-  <!-- Stats bar -->
-  <div class="stats-bar" id="statsBar">
-    <div class="stat-item green">
-      <div class="stat-label">Ingresos Totales</div>
-      <div class="stat-value" id="statIngresos">$0</div>
-    </div>
-    <div class="stat-item red">
-      <div class="stat-label">Egresos Totales</div>
-      <div class="stat-value" id="statEgresos">$0</div>
-    </div>
-    <div class="stat-item blue">
-      <div class="stat-label">CAPEX Total</div>
-      <div class="stat-value" id="statCapex">$0</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-label">Items</div>
-      <div class="stat-value" id="statItems">0</div>
-    </div>
+  <div class="stats-bar">
+    <div class="stat-item green"><div class="stat-label">Ingresos</div><div class="stat-value" id="statIngresos">—</div></div>
+    <div class="stat-item red"><div class="stat-label">Egresos</div><div class="stat-value" id="statEgresos">—</div></div>
+    <div class="stat-item blue"><div class="stat-label">CAPEX</div><div class="stat-value" id="statCapex">—</div></div>
+    <div class="stat-item"><div class="stat-label">Ítems</div><div class="stat-value" id="statItems">0</div></div>
   </div>
 
-  <!-- Form -->
-  <div class="card">
-    <h2><span class="icon">&#43;</span> <span id="formTitle">Nuevo Costo</span></h2>
-    <div class="form-grid">
+  <div class="card" id="formCard">
+    <h2><span class="icon">&#43;</span> <span id="formTitle">Nuevo costo</span></h2>
+    <form id="costoForm" class="form-grid">
       <div class="form-group">
-        <label>ID del Costo</label>
-        <input type="text" id="costoId" placeholder="C-001">
+        <label for="codigo">ID del costo</label>
+        <input type="text" id="codigo" placeholder="C-001">
       </div>
       <div class="form-group">
-        <label>Familia</label>
-        <input type="text" id="familia" placeholder="Hardware, Servicios, Personal...">
+        <label for="familia">Familia</label>
+        <input type="text" id="familia" placeholder="Hardware, Servicios, Personal…">
       </div>
       <div class="form-group">
-        <label>Clase</label>
-        <input type="text" id="clase" placeholder="Servidores, Soporte...">
+        <label for="clase">Clase</label>
+        <input type="text" id="clase" placeholder="Servidores, Soporte…">
       </div>
       <div class="form-group" style="grid-column:1/-1">
-        <label>Descripción</label>
-        <input type="text" id="descripcion" placeholder="Descripción detallada del costo">
+        <label for="descripcion">Descripción</label>
+        <input type="text" id="descripcion" required placeholder="Descripción detallada del costo">
       </div>
       <div class="form-group">
-        <label>Categoría</label>
-        <select id="categoria">
-          <optgroup label="INGRESOS">
-            <option value="ingreso">Ingreso del Proyecto</option>
-            <option value="ingreso_instalacion">Ingreso Instalaciones</option>
-          </optgroup>
-          <optgroup label="EGRESOS">
-            <option value="opex_efectivo">OPEX Efectivo</option>
-            <option value="opex_no_efectivo">OPEX No Efectivo</option>
-            <option value="gasto_instalacion">Gastos Instalaciones</option>
-            <option value="costo_indirecto">Costos Indirectos</option>
-            <option value="costo_impositivo">Costos Impositivos</option>
-          </optgroup>
-          <optgroup label="DEPRECIACIONES">
-            <option value="depreciacion">Depreciación</option>
-          </optgroup>
-          <optgroup label="GASTOS FINANCIEROS">
-            <option value="gasto_financiero">Gastos Financieros</option>
-          </optgroup>
-          <optgroup label="CAPEX">
-            <option value="capex_instalacion">CAPEX Instalaciones</option>
-            <option value="capex_efectivo">CAPEX Efectivo</option>
-            <option value="capex_no_efectivo">CAPEX No Efectivo</option>
-          </optgroup>
-          <optgroup label="SALVAMENTO">
-            <option value="salvamento">Salvamento</option>
-          </optgroup>
-        </select>
+        <label for="categoria">Categoría</label>
+        <select id="categoria"></select>
       </div>
       <div class="form-group">
-        <label>Valor Mensual / Total</label>
-        <input type="number" id="valor" min="0" step="0.01" placeholder="0">
+        <label for="valor" id="valorLabel">Valor mensual</label>
+        <input type="number" id="valor" min="0" step="0.01" required placeholder="0">
       </div>
       <div class="form-group">
-        <label>Fecha de Inicio</label>
-        <input type="date" id="fechaInicio">
+        <label for="fecha_inicio">Fecha de inicio</label>
+        <input type="date" id="fecha_inicio" required>
       </div>
       <div class="form-group">
-        <label>Duración (meses)</label>
-        <input type="number" id="duracion" min="1" value="1">
+        <label for="duracion">Duración (meses)</label>
+        <input type="number" id="duracion" min="1" value="1" required>
       </div>
       <div class="form-group">
-        <label>Moneda</label>
+        <label for="moneda">Moneda</label>
         <select id="moneda">
           <option value="COP">COP</option>
           <option value="USD">USD</option>
           <option value="EUR">EUR</option>
         </select>
       </div>
-    </div>
-    <div class="btn-group mt-4">
-      <button class="btn btn-primary" onclick="guardar()">&#128190; Guardar</button>
-      <button class="btn btn-secondary" onclick="cancelar()">&#10005; Cancelar</button>
-    </div>
+      <div class="btn-group" style="grid-column:1/-1">
+        <button type="submit" class="btn btn-primary">&#128190; Guardar</button>
+        <button type="button" class="btn btn-secondary" id="btnCancelar">Cancelar</button>
+      </div>
+    </form>
   </div>
 
-  <!-- Filter & List -->
+  <p id="soloLectura" class="alert alert-info hidden">Tu perfil permite consultar los costos. Para registrarlos o editarlos se requiere perfil Preventa o Administrador.</p>
+
   <div class="card">
-    <h2><span class="icon">&#128178;</span> Lista de Costos</h2>
+    <h2><span class="icon">&#128178;</span> Costos del proyecto</h2>
     <div class="flex items-center gap-4 mb-2" style="flex-wrap:wrap">
-      <div class="form-group" style="margin:0;min-width:200px">
-        <label>Filtrar por categoría</label>
-        <select id="filterCat" onchange="renderList()">
-          <option value="">Todas</option>
-          <optgroup label="INGRESOS">
-            <option value="ingreso">Ingreso del Proyecto</option>
-            <option value="ingreso_instalacion">Ingreso Instalaciones</option>
-          </optgroup>
-          <optgroup label="EGRESOS">
-            <option value="opex_efectivo">OPEX Efectivo</option>
-            <option value="opex_no_efectivo">OPEX No Efectivo</option>
-            <option value="gasto_instalacion">Gastos Instalaciones</option>
-            <option value="costo_indirecto">Costos Indirectos</option>
-            <option value="costo_impositivo">Costos Impositivos</option>
-          </optgroup>
-          <optgroup label="OTRAS">
-            <option value="depreciacion">Depreciación</option>
-            <option value="gasto_financiero">Gastos Financieros</option>
-            <option value="capex_instalacion">CAPEX Instalaciones</option>
-            <option value="capex_efectivo">CAPEX Efectivo</option>
-            <option value="capex_no_efectivo">CAPEX No Efectivo</option>
-            <option value="salvamento">Salvamento</option>
-          </optgroup>
-        </select>
+      <div class="form-group" style="margin:0;min-width:220px">
+        <label for="filterCat">Filtrar por categoría</label>
+        <select id="filterCat"><option value="">Todas</option></select>
       </div>
-      <a href="flujo-caja.html" class="btn btn-secondary" style="margin-top:1rem">&#128200; Ver Flujo de Caja</a>
+      <a href="flujo-caja.html" class="btn btn-secondary" style="margin-top:1rem">&#128200; Ver flujo de caja</a>
     </div>
     <div class="table-wrap">
-      <table class="data-table" id="costosTable">
+      <table class="data-table">
         <thead>
           <tr>
             <th>ID</th><th>Familia</th><th>Descripción</th><th>Categoría</th>
-            <th class="right">Valor</th><th>Mon.</th><th>Inicio</th><th>Dur.</th><th></th>
+            <th class="right">Valor</th><th class="right">Total</th><th>Mon.</th><th>Inicio</th><th>Meses</th><th></th>
           </tr>
         </thead>
         <tbody id="costosBody"></tbody>
@@ -163,204 +94,155 @@
   </div>
 </div>
 
-<div id="toast" class="toast"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
 <script>
-// -------- Constants --------
+// recurrente: el valor se repite cada mes durante la duración; si no, es un pago único de valor × duración
 const CATS = {
-  ingreso:             { label:'Ingreso del Proyecto',     grupo:'INGRESOS',            recurrente:true,  signo:1  },
-  ingreso_instalacion: { label:'Ingreso Instalaciones',    grupo:'INGRESOS',            recurrente:true,  signo:1  },
-  opex_efectivo:       { label:'OPEX Efectivo',            grupo:'EGRESOS',             recurrente:true,  signo:-1 },
-  opex_no_efectivo:    { label:'OPEX No Efectivo',         grupo:'EGRESOS',             recurrente:true,  signo:-1 },
-  gasto_instalacion:   { label:'Gastos Instalaciones',     grupo:'EGRESOS',             recurrente:true,  signo:-1 },
-  costo_indirecto:     { label:'Costos Indirectos',        grupo:'EGRESOS',             recurrente:true,  signo:-1 },
-  costo_impositivo:    { label:'Costos Impositivos',       grupo:'EGRESOS',             recurrente:true,  signo:-1 },
-  depreciacion:        { label:'Depreciación',             grupo:'DEPRECIACIONES',      recurrente:true,  signo:-1 },
-  gasto_financiero:    { label:'Gastos Financieros',       grupo:'GASTOS FINANCIEROS',  recurrente:true,  signo:-1 },
-  capex_instalacion:   { label:'CAPEX Instalaciones',      grupo:'CAPEX',               recurrente:false, signo:-1 },
-  capex_efectivo:      { label:'CAPEX Efectivo',           grupo:'CAPEX',               recurrente:false, signo:-1 },
-  capex_no_efectivo:   { label:'CAPEX No Efectivo',        grupo:'CAPEX',               recurrente:false, signo:-1 },
-  salvamento:          { label:'Salvamento',               grupo:'SALVAMENTO',          recurrente:false, signo:1  },
+  ingreso:             { label: 'Ingreso del Proyecto',  grupo: 'INGRESOS',           recurrente: true  },
+  ingreso_instalacion: { label: 'Ingreso Instalaciones', grupo: 'INGRESOS',           recurrente: true  },
+  opex_efectivo:       { label: 'OPEX Efectivo',         grupo: 'EGRESOS',            recurrente: true  },
+  opex_no_efectivo:    { label: 'OPEX No Efectivo',      grupo: 'EGRESOS',            recurrente: true  },
+  gasto_instalacion:   { label: 'Gastos Instalaciones',  grupo: 'EGRESOS',            recurrente: true  },
+  costo_indirecto:     { label: 'Costos Indirectos',     grupo: 'EGRESOS',            recurrente: true  },
+  costo_impositivo:    { label: 'Costos Impositivos',    grupo: 'EGRESOS',            recurrente: true  },
+  depreciacion:        { label: 'Depreciación',          grupo: 'DEPRECIACIONES',     recurrente: true  },
+  gasto_financiero:    { label: 'Gastos Financieros',    grupo: 'GASTOS FINANCIEROS', recurrente: true  },
+  capex_instalacion:   { label: 'CAPEX Instalaciones',   grupo: 'CAPEX',              recurrente: false },
+  capex_efectivo:      { label: 'CAPEX Efectivo',        grupo: 'CAPEX',              recurrente: false },
+  capex_no_efectivo:   { label: 'CAPEX No Efectivo',     grupo: 'CAPEX',              recurrente: false },
+  salvamento:          { label: 'Salvamento',            grupo: 'SALVAMENTO',         recurrente: false },
 };
+const BADGE = { INGRESOS: 'badge-green', EGRESOS: 'badge-red', CAPEX: 'badge-blue', DEPRECIACIONES: 'badge-orange', 'GASTOS FINANCIEROS': 'badge-orange', SALVAMENTO: 'badge-gray' };
+const CAMPOS = ['codigo', 'familia', 'clase', 'descripcion', 'categoria', 'valor', 'fecha_inicio', 'duracion', 'moneda'];
 
-const KEY = 'costosData';
 let costos = [];
 let editId = null;
 
-// -------- Storage --------
-function load() {
-  costos = JSON.parse(localStorage.getItem(KEY) || '[]');
-  migrarCostos();
-}
-function save() {
-  localStorage.setItem(KEY, JSON.stringify(costos));
-  updateStats();
-  renderList();
+function opcionesCategoria() {
+  const grupos = {};
+  Object.entries(CATS).forEach(([id, c]) => { (grupos[c.grupo] ||= []).push(`<option value="${id}">${c.label}</option>`); });
+  return Object.entries(grupos).map(([g, ops]) => `<optgroup label="${g}">${ops.join('')}</optgroup>`).join('');
 }
 
-// Backward compat migration from old format
-function migrarCostos() {
-  costos = costos.map(c => {
-    if (!c.categoria) {
-      if      (c.tipo === 'CAPEX') c.categoria = 'capex_efectivo';
-      else if (c.tipo === 'OPEX')  c.categoria = 'opex_efectivo';
-      else                          c.categoria = 'ingreso';
-    }
-    if (!c.costoId)   c.costoId  = c.id || ('C-' + Math.random().toString(36).substr(2,5).toUpperCase());
-    if (!c.familia)   c.familia  = c.tipo || 'General';
-    if (!c.clase)     c.clase    = '';
-    if (!c.duracion)  c.duracion = 1;
-    if (!c.moneda)    c.moneda   = 'COP';
-    return c;
-  });
+const totalCosto = c => Number(c.valor) * c.duracion;
+
+async function cargar() {
+  costos = await App.q(App.sb.from('costos').select('*').eq('proyecto_id', App.proyecto.id).order('creado_en'));
+  render();
 }
 
-// -------- Format --------
-const fmt = v => new Intl.NumberFormat('es-CO', { minimumFractionDigits:0, maximumFractionDigits:0 }).format(v);
-
-// -------- Stats --------
-function updateStats() {
+function render() {
+  const mon = App.proyecto.moneda;
   let ing = 0, egr = 0, cap = 0;
   costos.forEach(c => {
-    const cat = CATS[c.categoria];
-    if (!cat) return;
-    const total = (parseFloat(c.valor) || 0) * (parseInt(c.duracion) || 1);
-    if (cat.grupo === 'INGRESOS')    ing += total;
-    else if (cat.grupo === 'CAPEX')  cap += total;
-    else                             egr += total;
+    const g = CATS[c.categoria].grupo;
+    if (g === 'INGRESOS') ing += totalCosto(c);
+    else if (g === 'CAPEX') cap += totalCosto(c);
+    else if (g !== 'SALVAMENTO') egr += totalCosto(c);
   });
-  document.getElementById('statIngresos').textContent = '$' + fmt(ing);
-  document.getElementById('statEgresos').textContent  = '$' + fmt(egr);
-  document.getElementById('statCapex').textContent    = '$' + fmt(cap);
-  document.getElementById('statItems').textContent    = costos.length;
+  document.getElementById('statIngresos').textContent = App.fmtCur(ing, mon);
+  document.getElementById('statEgresos').textContent = App.fmtCur(egr, mon);
+  document.getElementById('statCapex').textContent = App.fmtCur(cap, mon);
+  document.getElementById('statItems').textContent = costos.length;
+
+  const filtro = document.getElementById('filterCat').value;
+  const esc = App.esc;
+  const editable = App.puedeEditar();
+  document.getElementById('costosBody').innerHTML = costos
+    .filter(c => !filtro || c.categoria === filtro)
+    .map(c => {
+      const cat = CATS[c.categoria];
+      return `<tr>
+        <td>${esc(c.codigo)}</td>
+        <td>${esc(c.familia)}${c.clase ? `<br><small class="text-muted">${esc(c.clase)}</small>` : ''}</td>
+        <td>${esc(c.descripcion)}</td>
+        <td><span class="badge ${BADGE[cat.grupo]}">${cat.label}</span></td>
+        <td class="num">${App.fmtNum(c.valor)}${cat.recurrente ? '<small class="text-muted">/mes</small>' : ''}</td>
+        <td class="num">${App.fmtNum(totalCosto(c))}</td>
+        <td>${esc(c.moneda)}</td>
+        <td class="nowrap">${App.fecha(c.fecha_inicio)}</td>
+        <td class="center">${c.duracion}</td>
+        <td class="nowrap">${editable ? `
+          <button class="btn btn-sm btn-secondary" data-accion="editar" data-id="${c.id}" title="Editar">&#9998;</button>
+          <button class="btn btn-sm btn-danger" data-accion="eliminar" data-id="${c.id}" title="Eliminar">&#215;</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('')
+    || `<tr><td colspan="10" class="center text-muted" style="padding:2rem">Sin costos registrados</td></tr>`;
 }
 
-// -------- List --------
-function renderList() {
-  const filter = document.getElementById('filterCat').value;
-  const filtered = filter ? costos.filter(c => c.categoria === filter) : costos;
-  const tbody = document.getElementById('costosBody');
-  tbody.innerHTML = filtered.map(c => {
-    const cat = CATS[c.categoria] || {};
-    const total = (parseFloat(c.valor)||0) * (parseInt(c.duracion)||1);
-    return `<tr>
-      <td>${c.costoId || ''}</td>
-      <td>${c.familia || ''}</td>
-      <td title="${c.descripcion}">${(c.descripcion||'').substring(0,40)}${(c.descripcion||'').length>40?'…':''}</td>
-      <td><span class="badge ${getBadgeClass(c.categoria)}">${cat.label || c.categoria}</span></td>
-      <td class="num">$${fmt(total)}</td>
-      <td>${c.moneda || 'COP'}</td>
-      <td>${c.fechaInicio || ''}</td>
-      <td>${c.duracion || 1}</td>
-      <td class="nowrap">
-        <button class="btn btn-sm btn-secondary" onclick="editar('${c._id}')">&#9998;</button>
-        <button class="btn btn-sm btn-danger" onclick="eliminar('${c._id}')">&#215;</button>
-      </td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--clr-muted)">Sin costos registrados</td></tr>`;
+function actualizarEtiquetaValor() {
+  const recurrente = CATS[document.getElementById('categoria').value].recurrente;
+  document.getElementById('valorLabel').textContent = recurrente ? 'Valor mensual' : 'Valor (pago único)';
 }
 
-function getBadgeClass(cat) {
-  const g = CATS[cat]?.grupo || '';
-  if (g === 'INGRESOS') return 'badge-green';
-  if (g === 'CAPEX')    return 'badge-blue';
-  if (g === 'DEPRECIACIONES' || g === 'GASTOS FINANCIEROS') return 'badge-orange';
-  if (g === 'SALVAMENTO') return 'badge-gray';
-  return 'badge-red';
-}
-
-// -------- CRUD --------
-function guardar() {
-  const costoId    = document.getElementById('costoId').value.trim();
-  const familia    = document.getElementById('familia').value.trim();
-  const clase      = document.getElementById('clase').value.trim();
-  const descripcion= document.getElementById('descripcion').value.trim();
-  const categoria  = document.getElementById('categoria').value;
-  const valor      = parseFloat(document.getElementById('valor').value) || 0;
-  const fechaInicio= document.getElementById('fechaInicio').value;
-  const duracion   = parseInt(document.getElementById('duracion').value) || 1;
-  const moneda     = document.getElementById('moneda').value;
-
-  if (!descripcion) { showToast('La descripción es obligatoria', 'error'); return; }
-  if (!fechaInicio) { showToast('La fecha de inicio es obligatoria', 'error'); return; }
-
-  if (editId) {
-    const idx = costos.findIndex(c => c._id === editId);
-    if (idx >= 0) costos[idx] = { ...costos[idx], costoId, familia, clase, descripcion, categoria, valor, fechaInicio, duracion, moneda };
-    editId = null;
-    document.getElementById('formTitle').textContent = 'Nuevo Costo';
-  } else {
-    costos.push({ _id: Date.now().toString(36), costoId, familia, clase, descripcion, categoria, valor, fechaInicio, duracion, moneda });
-  }
-  save();
-  limpiarForm();
-  showToast('Costo guardado');
+function limpiarForm() {
+  editId = null;
+  document.getElementById('costoForm').reset();
+  document.getElementById('fecha_inicio').value = App.proyecto.fecha_inicio;
+  document.getElementById('moneda').value = App.proyecto.moneda;
+  document.getElementById('formTitle').textContent = 'Nuevo costo';
+  actualizarEtiquetaValor();
 }
 
 function editar(id) {
-  const c = costos.find(x => x._id === id);
-  if (!c) return;
+  const c = costos.find(x => x.id === id);
   editId = id;
-  document.getElementById('costoId').value     = c.costoId || '';
-  document.getElementById('familia').value     = c.familia || '';
-  document.getElementById('clase').value       = c.clase || '';
-  document.getElementById('descripcion').value = c.descripcion || '';
-  document.getElementById('categoria').value   = c.categoria || 'opex_efectivo';
-  document.getElementById('valor').value       = c.valor || 0;
-  document.getElementById('fechaInicio').value = c.fechaInicio || '';
-  document.getElementById('duracion').value    = c.duracion || 1;
-  document.getElementById('moneda').value      = c.moneda || 'COP';
-  document.getElementById('formTitle').textContent = 'Editar Costo';
+  CAMPOS.forEach(k => { document.getElementById(k).value = c[k] ?? ''; });
+  document.getElementById('formTitle').textContent = 'Editar costo';
+  actualizarEtiquetaValor();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function eliminar(id) {
+async function eliminar(id) {
   if (!confirm('¿Eliminar este costo?')) return;
-  costos = costos.filter(c => c._id !== id);
-  save();
-  showToast('Costo eliminado', 'error');
+  await App.q(App.sb.from('costos').delete().eq('id', id));
+  App.toast('Costo eliminado', 'error');
+  await cargar();
 }
 
-function cancelar() { editId = null; limpiarForm(); document.getElementById('formTitle').textContent = 'Nuevo Costo'; }
+document.getElementById('costoForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const datos = {};
+  CAMPOS.forEach(k => { datos[k] = document.getElementById(k).value.trim(); });
+  datos.valor = parseFloat(datos.valor);
+  datos.duracion = parseInt(datos.duracion, 10);
 
-function limpiarForm() {
-  ['costoId','familia','clase','descripcion','valor'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-  document.getElementById('duracion').value = '1';
-  document.getElementById('moneda').value = 'COP';
-  // Set default fecha from project
-  const proj = JSON.parse(localStorage.getItem('proyectoData') || 'null');
-  document.getElementById('fechaInicio').value = proj?.fechaInicio || '';
-}
-
-// -------- Toast --------
-function showToast(msg, type='success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast show ${type}`;
-  setTimeout(() => t.className = 'toast', 3000);
-}
-
-// -------- Init --------
-(function() {
-  const proj = JSON.parse(localStorage.getItem('proyectoData') || 'null');
-  if (proj) {
-    const chip = document.getElementById('projectChip');
-    chip.textContent = proj.nombreProyecto;
-    chip.classList.remove('hidden');
-    document.getElementById('fechaInicio').value = proj.fechaInicio || '';
-    document.getElementById('moneda').value = proj.tipoMoneda || 'COP';
+  if (editId) {
+    await App.q(App.sb.from('costos').update(datos).eq('id', editId));
+    App.toast('Costo actualizado');
+  } else {
+    await App.q(App.sb.from('costos').insert({ ...datos, proyecto_id: App.proyecto.id }));
+    App.toast('Costo guardado');
   }
-  try {
-    const auth = JSON.parse(localStorage.getItem('_proyectopro_auth') || 'null');
-    if (auth?.usuario?.nombre) {
-      const b = document.getElementById('userBadge');
-      b.textContent = auth.usuario.nombre + ' · ' + (auth.perfil?.nombre || '');
-      b.classList.remove('hidden');
-    }
-  } catch(e) {}
-  load();
-  updateStats();
-  renderList();
+  limpiarForm();
+  await cargar();
+});
+
+document.getElementById('costosBody').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-accion]');
+  if (!btn) return;
+  if (btn.dataset.accion === 'editar') editar(btn.dataset.id);
+  if (btn.dataset.accion === 'eliminar') eliminar(btn.dataset.id);
+});
+document.getElementById('btnCancelar').addEventListener('click', limpiarForm);
+document.getElementById('categoria').addEventListener('change', actualizarEtiquetaValor);
+document.getElementById('filterCat').addEventListener('change', render);
+
+(async () => {
+  if (!await App.iniciar({ pagina: 'costos.html', requiereProyecto: true })) return;
+  document.getElementById('categoria').innerHTML = opcionesCategoria();
+  document.getElementById('categoria').value = 'opex_efectivo';
+  document.getElementById('filterCat').innerHTML += opcionesCategoria();
+  if (App.puedeEditar()) {
+    limpiarForm();
+  } else {
+    document.getElementById('formCard').classList.add('hidden');
+    document.getElementById('soloLectura').classList.remove('hidden');
+  }
+  await cargar();
 })();
 </script>
 </body>

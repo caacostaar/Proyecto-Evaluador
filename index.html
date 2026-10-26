@@ -3,154 +3,195 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ProyectoPro — Datos del Proyecto</title>
+  <title>ProyectoPro — Proyectos</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<nav class="navbar">
-  <a href="index.html" class="brand">ProyectoPro</a>
-  <a href="index.html" class="active">&#128196; Proyecto</a>
-  <a href="costos.html">&#128178; Costos</a>
-  <a href="flujo-caja.html">&#128200; Flujo de Caja</a>
-  <a href="parametros.html">&#9881; Parámetros</a>
-  <div class="spacer"></div>
-  <span id="projectChip" class="project-chip hidden"></span>
-  <span id="userBadge" class="user-badge hidden"></span>
-</nav>
+<nav id="navbar" class="navbar"></nav>
 
 <div class="container">
+  <div id="aviso" class="alert alert-warn hidden">Selecciona o crea un proyecto para continuar.</div>
+
   <div class="card">
-    <h2><span class="icon">&#128196;</span> Datos Generales del Proyecto</h2>
+    <h2><span class="icon">&#128196;</span> Proyectos de <span id="empresaNombre"></span></h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Proyecto</th><th>Cliente</th><th>Inicio</th><th>Meses</th><th>Moneda</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody id="proyectosBody">
+          <tr><td colspan="7" class="center text-muted" style="padding:2rem">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="formCard">
+    <h2><span class="icon">&#43;</span> <span id="formTitle">Nuevo proyecto</span></h2>
     <form id="proyectoForm" class="form-grid">
       <div class="form-group">
-        <label for="nit">NIT Empresa</label>
-        <input type="text" id="nit" name="nit" placeholder="900.123.456-7" required>
+        <label for="nit_cliente">NIT del cliente</label>
+        <input type="text" id="nit_cliente" placeholder="900.123.456-7" required>
       </div>
       <div class="form-group">
-        <label for="nombre">Razón Social</label>
-        <input type="text" id="nombre" name="nombre" placeholder="Empresa S.A.S." required>
+        <label for="nombre_cliente">Razón social del cliente</label>
+        <input type="text" id="nombre_cliente" placeholder="Empresa S.A.S." required>
       </div>
       <div class="form-group" style="grid-column: 1 / -1">
-        <label for="nombreProyecto">Nombre del Proyecto</label>
-        <input type="text" id="nombreProyecto" name="nombreProyecto" placeholder="Implementación Sistema ERP" required>
+        <label for="nombre_proyecto">Nombre del proyecto</label>
+        <input type="text" id="nombre_proyecto" placeholder="Implementación Sistema ERP" required>
       </div>
       <div class="form-group">
-        <label for="idProyecto">ID del Proyecto</label>
-        <input type="text" id="idProyecto" name="idProyecto" placeholder="PRY-2024-001">
+        <label for="codigo_proyecto">ID del proyecto</label>
+        <input type="text" id="codigo_proyecto" placeholder="PRY-2026-001">
       </div>
       <div class="form-group">
-        <label for="fechaInicio">Fecha de Inicio</label>
-        <input type="date" id="fechaInicio" name="fechaInicio" required>
+        <label for="fecha_inicio">Fecha de inicio</label>
+        <input type="date" id="fecha_inicio" required>
       </div>
       <div class="form-group">
-        <label for="tiempoContrato">Duración (meses)</label>
-        <input type="number" id="tiempoContrato" name="tiempoContrato" min="1" max="120" value="12" required>
+        <label for="tiempo_contrato">Duración (meses)</label>
+        <input type="number" id="tiempo_contrato" min="1" max="120" value="12" required>
       </div>
       <div class="form-group">
-        <label for="plazoPago">Plazo de Pago (días)</label>
-        <input type="number" id="plazoPago" name="plazoPago" min="0" max="360" value="30">
+        <label for="plazo_pago">Plazo de pago (días)</label>
+        <input type="number" id="plazo_pago" min="0" max="360" value="30" required>
       </div>
       <div class="form-group">
-        <label for="tipoMoneda">Moneda</label>
-        <select id="tipoMoneda" name="tipoMoneda">
-          <option value="COP">COP — Peso Colombiano</option>
-          <option value="USD">USD — Dólar Americano</option>
+        <label for="moneda">Moneda</label>
+        <select id="moneda">
+          <option value="COP">COP — Peso colombiano</option>
+          <option value="USD">USD — Dólar americano</option>
           <option value="EUR">EUR — Euro</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label for="estado">Estado</label>
+        <select id="estado">
+          <option value="borrador">Borrador</option>
+          <option value="activo">Activo</option>
+          <option value="cerrado">Cerrado</option>
+          <option value="archivado">Archivado</option>
+        </select>
+      </div>
+      <div class="btn-group" style="grid-column: 1 / -1">
+        <button type="submit" class="btn btn-primary">&#128190; Guardar proyecto</button>
+        <button type="button" class="btn btn-secondary" id="btnCancelar">Cancelar</button>
       </div>
     </form>
   </div>
 
-  <div class="btn-group">
-    <button class="btn btn-primary" onclick="guardar()">&#128190; Guardar Proyecto</button>
-    <button class="btn btn-secondary" onclick="limpiar()">&#128465; Limpiar</button>
-    <a href="costos.html" class="btn btn-secondary">&#8594; Ir a Costos</a>
-  </div>
-
-  <div id="savedInfo" class="card mt-4 hidden">
-    <h2><span class="icon">&#10003;</span> Proyecto Guardado</h2>
-    <div id="savedContent" class="form-grid text-sm"></div>
-  </div>
+  <p id="soloLectura" class="alert alert-info hidden">Tu perfil permite consultar proyectos. Para crear o editar, pide al administrador un perfil Preventa.</p>
 </div>
 
-<div id="toast" class="toast"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
 <script>
-const FIELDS = ['nit','nombre','nombreProyecto','idProyecto','fechaInicio','tiempoContrato','plazoPago','tipoMoneda'];
-const KEY = 'proyectoData';
+const CAMPOS = ['nit_cliente', 'nombre_cliente', 'nombre_proyecto', 'codigo_proyecto', 'fecha_inicio', 'tiempo_contrato', 'plazo_pago', 'moneda', 'estado'];
+const ESTADOS = { borrador: 'badge-gray', activo: 'badge-green', cerrado: 'badge-blue', archivado: 'badge-orange' };
+let proyectos = [];
+let editId = null;
 
-function showToast(msg, type = 'success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast show ${type}`;
-  setTimeout(() => t.className = 'toast', 3000);
+async function cargar() {
+  proyectos = await App.q(App.sb.from('proyectos').select('*').order('creado_en', { ascending: false }));
+  render();
 }
 
-function loadFromStorage() {
-  const data = JSON.parse(localStorage.getItem(KEY) || 'null');
-  if (!data) return;
-  FIELDS.forEach(f => {
-    const el = document.getElementById(f);
-    if (el && data[f] != null) el.value = data[f];
-  });
-  showSaved(data);
+function render() {
+  const esc = App.esc;
+  const actual = App.proyecto?.id;
+  document.getElementById('proyectosBody').innerHTML = proyectos.map(p => `
+    <tr class="${p.id === actual ? 'row-actual' : ''}">
+      <td><strong>${esc(p.nombre_proyecto)}</strong>${p.codigo_proyecto ? `<br><small class="text-muted">${esc(p.codigo_proyecto)}</small>` : ''}
+        ${p.id === actual ? ' <span class="badge badge-green">Actual</span>' : ''}</td>
+      <td>${esc(p.nombre_cliente)}<br><small class="text-muted">${esc(p.nit_cliente)}</small></td>
+      <td class="nowrap">${App.fecha(p.fecha_inicio)}</td>
+      <td class="center">${p.tiempo_contrato}</td>
+      <td>${esc(p.moneda)}</td>
+      <td><span class="badge ${ESTADOS[p.estado] || 'badge-gray'}">${esc(p.estado)}</span></td>
+      <td class="nowrap">
+        <button class="btn btn-sm btn-primary" data-accion="abrir" data-id="${p.id}">Abrir</button>
+        ${App.puedeEditar() ? `<button class="btn btn-sm btn-secondary" data-accion="editar" data-id="${p.id}" title="Editar">&#9998;</button>` : ''}
+        ${App.esAdmin() ? `<button class="btn btn-sm btn-danger" data-accion="eliminar" data-id="${p.id}" title="Eliminar">&#215;</button>` : ''}
+      </td>
+    </tr>`).join('')
+    || `<tr><td colspan="7" class="center text-muted" style="padding:2rem">Aún no hay proyectos.${App.puedeEditar() ? ' Crea el primero con el formulario de abajo.' : ''}</td></tr>`;
 }
 
-function showSaved(data) {
-  const el = document.getElementById('savedContent');
-  const labels = {
-    nit: 'NIT', nombre: 'Empresa', nombreProyecto: 'Proyecto',
-    idProyecto: 'ID', fechaInicio: 'Inicio', tiempoContrato: 'Duración (meses)',
-    plazoPago: 'Plazo pago (días)', tipoMoneda: 'Moneda'
-  };
-  el.innerHTML = FIELDS.map(f => data[f]
-    ? `<div class="form-group"><label>${labels[f]}</label><p style="padding:.4rem 0">${data[f]}</p></div>`
-    : '').join('');
-  document.getElementById('savedInfo').classList.remove('hidden');
-
-  const chip = document.getElementById('projectChip');
-  chip.textContent = data.nombreProyecto || '';
-  chip.classList.toggle('hidden', !data.nombreProyecto);
+function limpiarForm() {
+  editId = null;
+  document.getElementById('proyectoForm').reset();
+  document.getElementById('formTitle').textContent = 'Nuevo proyecto';
 }
 
-function guardar() {
-  const form = document.getElementById('proyectoForm');
-  if (!form.checkValidity()) { form.reportValidity(); return; }
-  const data = {};
-  FIELDS.forEach(f => {
-    const el = document.getElementById(f);
-    data[f] = el ? el.value : '';
-  });
-  localStorage.setItem(KEY, JSON.stringify(data));
-  showSaved(data);
-  showToast('Proyecto guardado correctamente');
+function editar(id) {
+  const p = proyectos.find(x => x.id === id);
+  editId = id;
+  CAMPOS.forEach(c => { document.getElementById(c).value = p[c] ?? ''; });
+  document.getElementById('formTitle').textContent = 'Editar proyecto';
+  document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
 }
 
-function limpiar() {
-  if (!confirm('¿Limpiar los datos del formulario?')) return;
-  FIELDS.forEach(f => {
-    const el = document.getElementById(f);
-    if (el) el.value = f === 'tiempoContrato' ? '12' : f === 'plazoPago' ? '30' : f === 'tipoMoneda' ? 'COP' : '';
-  });
-  localStorage.removeItem(KEY);
-  document.getElementById('savedInfo').classList.add('hidden');
-  showToast('Formulario limpiado', 'error');
+async function eliminar(id) {
+  const p = proyectos.find(x => x.id === id);
+  if (!confirm(`¿Eliminar el proyecto "${p.nombre_proyecto}" con todos sus costos y parámetros? Esta acción no se puede deshacer.`)) return;
+  await App.q(App.sb.from('proyectos').delete().eq('id', id));
+  if (App.proyecto?.id === id) App.seleccionarProyecto(null);
+  App.toast('Proyecto eliminado', 'error');
+  await cargar();
 }
 
-// Auth badge
-(function() {
-  try {
-    const auth = JSON.parse(localStorage.getItem('_proyectopro_auth') || 'null');
-    if (auth?.usuario?.nombre) {
-      const b = document.getElementById('userBadge');
-      b.textContent = auth.usuario.nombre + ' · ' + (auth.perfil?.nombre || '');
-      b.classList.remove('hidden');
-    }
-  } catch(e) {}
+document.getElementById('proyectosBody').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-accion]');
+  if (!btn) return;
+  const { accion, id } = btn.dataset;
+  if (accion === 'abrir') {
+    App.seleccionarProyecto(proyectos.find(p => p.id === id));
+    document.getElementById('aviso').classList.add('hidden');
+    render();
+    App.toast('Proyecto seleccionado. Ya puedes ir a Costos, Flujo de Caja o Parámetros.');
+  }
+  if (accion === 'editar') editar(id);
+  if (accion === 'eliminar') eliminar(id);
+});
+
+document.getElementById('proyectoForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const datos = {};
+  CAMPOS.forEach(c => { datos[c] = document.getElementById(c).value.trim(); });
+  datos.tiempo_contrato = parseInt(datos.tiempo_contrato, 10);
+  datos.plazo_pago = parseInt(datos.plazo_pago, 10);
+  datos.codigo_proyecto = datos.codigo_proyecto || null;
+
+  if (editId) {
+    const guardado = await App.q(App.sb.from('proyectos').update(datos).eq('id', editId).select().single());
+    if (App.proyecto?.id === editId) App.seleccionarProyecto(guardado);
+    App.toast('Proyecto actualizado');
+  } else {
+    const nuevo = await App.q(App.sb.from('proyectos').insert(datos).select().single());
+    App.seleccionarProyecto(nuevo);
+    App.toast('Proyecto creado y seleccionado');
+  }
+  limpiarForm();
+  await cargar();
+});
+
+document.getElementById('btnCancelar').addEventListener('click', limpiarForm);
+
+(async () => {
+  if (!await App.iniciar({ pagina: 'index.html' })) return;
+  document.getElementById('empresaNombre').textContent = App.usuario.empresa.razon_social;
+  if (new URLSearchParams(location.search).get('aviso') === 'proyecto') {
+    document.getElementById('aviso').classList.remove('hidden');
+  }
+  if (!App.puedeEditar()) {
+    document.getElementById('formCard').classList.add('hidden');
+    document.getElementById('soloLectura').classList.remove('hidden');
+  }
+  await cargar();
 })();
-
-loadFromStorage();
 </script>
 </body>
 </html>

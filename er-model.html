@@ -11,7 +11,7 @@
 
 <nav class="navbar">
   <a href="index.html" class="brand">ProyectoPro</a>
-  <a href="index.html">&#128196; Proyecto</a>
+  <a href="index.html">&#128196; Proyectos</a>
   <a href="costos.html">&#128178; Costos</a>
   <a href="flujo-caja.html">&#128200; Flujo de Caja</a>
   <a href="parametros.html">&#9881; Parámetros</a>
@@ -36,124 +36,110 @@
       <div class="mermaid">
 erDiagram
   PLANES {
-    CHAR id PK
-    VARCHAR nombre
-    VARCHAR codigo
-    DECIMAL precio_mensual
-    DECIMAL precio_anual
-    INT max_proyectos
-    INT max_usuarios
-    TINYINT activo
+    text codigo PK
+    text nombre
+    numeric precio_mensual
+    int max_proyectos
+    int max_usuarios
   }
   EMPRESAS {
-    CHAR id PK
-    VARCHAR nit
-    VARCHAR razon_social
-    VARCHAR email_contacto
-    CHAR plan_id FK
-    VARCHAR schema_name
-    ENUM estado
-    DATE trial_hasta
+    uuid id PK
+    text nit UK
+    text razon_social
+    text plan_codigo FK
+    text codigo_invitacion UK
+    text estado
   }
   PERFILES {
-    CHAR id PK
-    VARCHAR codigo
-    VARCHAR nombre
-    INT nivel
+    text codigo PK
+    text nombre
+    smallint nivel
+  }
+  AUTH_USERS {
+    uuid id PK
+    text email
   }
   USUARIOS {
-    CHAR id PK
-    CHAR empresa_id FK
-    CHAR perfil_id FK
-    VARCHAR nombre
-    VARCHAR email
-    VARCHAR password_hash
-    TINYINT activo
+    uuid id PK, FK
+    uuid empresa_id FK
+    text perfil FK
+    text nombre
+    boolean activo
   }
   SUSCRIPCIONES {
-    CHAR id PK
-    CHAR empresa_id FK
-    CHAR plan_id FK
-    ENUM periodicidad
-    DATE fecha_inicio
-    DECIMAL monto
-    ENUM estado
+    uuid id PK
+    uuid empresa_id FK
+    text plan_codigo FK
+    numeric monto
+    text estado
   }
   PAGOS {
-    CHAR id PK
-    CHAR suscripcion_id FK
-    DECIMAL monto
-    VARCHAR referencia_payu
-    VARCHAR estado_payu
-    JSON respuesta_completa
+    uuid id PK
+    uuid suscripcion_id FK
+    text referencia_payu
+    text estado_payu
   }
   PROYECTOS {
-    CHAR id PK
-    VARCHAR nit_empresa
-    VARCHAR nombre_proyecto
-    DATE fecha_inicio
-    INT tiempo_contrato
-    VARCHAR tipo_moneda
-    ENUM estado
+    uuid id PK
+    uuid empresa_id FK
+    text nombre_proyecto
+    date fecha_inicio
+    int tiempo_contrato
+    text moneda
   }
   COSTOS {
-    CHAR id PK
-    CHAR proyecto_id FK
-    VARCHAR costoId
-    VARCHAR familia
-    ENUM categoria
-    DECIMAL valor
-    DATE fecha_inicio
-    INT duracion
-    VARCHAR moneda
+    uuid id PK
+    uuid proyecto_id FK
+    text categoria
+    numeric valor
+    date fecha_inicio
+    int duracion
   }
-  INDICADORES_MACRO {
-    CHAR id PK
-    CHAR proyecto_id FK
-    DATE periodo
-    DECIMAL trm
-    DECIMAL ipc
-    DECIMAL inflacion
-    DECIMAL dtf
-    DECIMAL ibr
+  INDICADORES_MACROECONOMICOS {
+    uuid proyecto_id PK, FK
+    smallint mes PK
+    numeric trm
+    numeric ipc
+    numeric dtf
   }
   WACC_MENSUAL {
-    CHAR id PK
-    CHAR proyecto_id FK
-    DATE periodo
-    DECIMAL wacc_cop
-    DECIMAL wacc_usd
+    uuid proyecto_id PK, FK
+    smallint mes PK
+    numeric wacc_cop
+    numeric wacc_usd
   }
   PARAMETROS_IMPOSITIVOS {
-    CHAR id PK
-    CHAR proyecto_id FK
-    DATE periodo
-    DECIMAL renta
-    DECIMAL iva
-    DECIMAL retencion
-    DECIMAL ica
+    uuid proyecto_id PK, FK
+    smallint mes PK
+    numeric renta
+    numeric iva
   }
   PARAMETRICAS_NEGOCIO {
-    CHAR id PK
-    CHAR proyecto_id FK
-    DATE periodo
-    DECIMAL margen_objetivo
-    DECIMAL factor_multiplicador
-    DECIMAL factor_sensibilidad
-    DECIMAL tasa_descuento
+    uuid proyecto_id PK, FK
+    smallint mes PK
+    numeric factor_multiplicador
+    numeric factor_sensibilidad
+  }
+  AUDITORIA {
+    bigint id PK
+    uuid empresa_id FK
+    text tabla
+    text accion
   }
 
-  PLANES         ||--o{ EMPRESAS           : "tiene"
-  PLANES         ||--o{ SUSCRIPCIONES      : "define"
-  EMPRESAS       ||--o{ USUARIOS           : "tiene"
-  EMPRESAS       ||--o{ SUSCRIPCIONES      : "contrata"
-  SUSCRIPCIONES  ||--o{ PAGOS              : "genera"
-  PERFILES       ||--o{ USUARIOS           : "asignado a"
-  PROYECTOS      ||--o{ COSTOS             : "contiene"
-  PROYECTOS      ||--o{ INDICADORES_MACRO  : "parametriza"
-  PROYECTOS      ||--o{ WACC_MENSUAL       : "parametriza"
-  PROYECTOS      ||--o{ PARAMETROS_IMPOSITIVOS : "parametriza"
-  PROYECTOS      ||--o{ PARAMETRICAS_NEGOCIO   : "parametriza"
+  PLANES        ||--o{ EMPRESAS      : "plan"
+  EMPRESAS      ||--o{ USUARIOS      : "tiene"
+  AUTH_USERS    ||--|| USUARIOS      : "cuenta"
+  PERFILES      ||--o{ USUARIOS      : "asignado a"
+  EMPRESAS      ||--o{ SUSCRIPCIONES : "contrata"
+  SUSCRIPCIONES ||--o{ PAGOS         : "genera"
+  EMPRESAS      ||--o{ PROYECTOS     : "tiene"
+  EMPRESAS      ||--o{ AUDITORIA     : "registra"
+  PROYECTOS     ||--o{ COSTOS        : "contiene"
+  PROYECTOS     ||--o{ INDICADORES_MACROECONOMICOS : "por mes"
+  PROYECTOS     ||--o{ WACC_MENSUAL               : "por mes"
+  PROYECTOS     ||--o{ PARAMETROS_IMPOSITIVOS     : "por mes"
+  PROYECTOS     ||--o{ PARAMETRICAS_NEGOCIO       : "por mes"
       </div>
     </div>
   </div>
@@ -170,7 +156,7 @@ erDiagram
           <tr>
             <td><span class="badge badge-gray">Usuario Final</span></td>
             <td>1</td>
-            <td>Consulta proyectos y genera reportes. No puede modificar parámetros restringidos.</td>
+            <td>Consulta proyectos y costos. Edita parámetros excepto el Factor de Sensibilidad.</td>
             <td>Cliente que revisa el estado del proyecto</td>
           </tr>
           <tr>
@@ -188,7 +174,7 @@ erDiagram
           <tr>
             <td><span class="badge badge-red">Super Admin</span></td>
             <td>4</td>
-            <td>Acceso total a la plataforma, gestión de tenants, planes y configuración global.</td>
+            <td>Igual que Administrador. Se asigna solo desde Supabase.</td>
             <td>Equipo técnico de ProyectoPro</td>
           </tr>
         </tbody>
@@ -223,8 +209,8 @@ erDiagram
             <tr><td>Eliminar costos</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
             <tr><td colspan="5" style="background:#f0f4f8;font-weight:700;color:#334155">PARÁMETROS</td></tr>
             <tr><td>Ver parámetros</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
-            <tr><td>Editar macro / WACC / impositivos</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
-            <tr><td>Editar Factor Multiplicador</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Editar macro / WACC / impositivos</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
+            <tr><td>Editar Factor Multiplicador</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
             <tr><td style="font-weight:600;color:#b45309">Editar Factor Sensibilidad ⚠</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
             <tr><td colspan="5" style="background:#f0f4f8;font-weight:700;color:#334155">USUARIOS / EMPRESA</td></tr>
             <tr><td>Ver usuarios</td><td class="center">—</td><td class="center">—</td><td class="center">&#10003;</td><td class="center">&#10003;</td></tr>
@@ -239,34 +225,28 @@ erDiagram
   <!-- Arquitectura -->
   <div id="tab-arq" class="tab-content">
     <div class="card">
-      <h2>&#127959; Arquitectura Multi-Tenant</h2>
+      <h2>&#127959; Arquitectura: Vercel + Supabase</h2>
       <div class="mermaid">
 graph TB
-  subgraph Internet
-    U[Usuario]
-    PAY[PayU Colombia]
+  U[Usuario en el navegador]
+  subgraph Vercel
+    FE[Páginas HTML / CSS / JS]
   end
-  subgraph "ProyectoPro SaaS"
-    FE[Frontend HTML/CSS/JS]
-    API[API Backend]
-    AUTH[Auth Service JWT]
-    subgraph "MySQL Server"
-      MASTER[(saas_master)]
-      T1[(co_9001234567)]
-      T2[(co_8002345678)]
-      TN[(co_...n)]
+  subgraph Supabase
+    AUTH[Auth: registro y login]
+    API[API REST automática]
+    subgraph PostgreSQL
+      RLS{{Row Level Security por empresa}}
+      DB[(Tablas compartidas con empresa_id)]
     end
   end
+  PAY[PayU Colombia - pendiente]
   U --> FE
+  FE --> AUTH
   FE --> API
-  API --> AUTH
-  API --> MASTER
-  AUTH --> MASTER
-  API --> T1
-  API --> T2
-  API --> TN
-  U --> PAY
-  PAY --> API
+  API --> RLS --> DB
+  AUTH --> DB
+  PAY -.-> API
       </div>
     </div>
   </div>

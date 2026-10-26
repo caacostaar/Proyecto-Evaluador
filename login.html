@@ -6,16 +6,14 @@
   <title>ProyectoPro — Acceso</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--clr-primary); }
-    .login-box { background: var(--clr-surface); border-radius: .75rem; box-shadow: 0 20px 60px rgba(0,0,0,.4); padding: 2.5rem; width: 90%; max-width: 460px; }
-    .login-logo { text-align: center; margin-bottom: 1.75rem; }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--clr-primary); padding: 1rem; }
+    .login-box { background: var(--clr-surface); border-radius: .75rem; box-shadow: 0 20px 60px rgba(0,0,0,.4); padding: 2rem; width: 100%; max-width: 480px; }
+    .login-logo { text-align: center; margin-bottom: 1.5rem; }
     .login-logo .brand-name { font-size: 1.6rem; font-weight: 800; color: var(--clr-accent); }
     .login-logo .subtitle { color: var(--clr-muted); font-size: .85rem; margin-top: .25rem; }
-    .step { display: none; }
-    .step.active { display: block; }
-    .step-indicator { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
-    .step-dot { flex: 1; height: 4px; border-radius: 2px; background: var(--clr-border); }
-    .step-dot.done { background: var(--clr-accent); }
+    .login-box .form-grid { grid-template-columns: 1fr; }
+    .login-box .tabs .tab-btn { flex: 1; }
+    .seccion { font-size: .75rem; font-weight: 700; color: var(--clr-muted); text-transform: uppercase; letter-spacing: .05em; margin-top: .5rem; }
   </style>
 </head>
 <body>
@@ -25,155 +23,162 @@
     <div class="subtitle">Evaluador Financiero de Proyectos</div>
   </div>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchMode('login')">Ingresar</button>
-    <button class="tab-btn" onclick="switchMode('register')">Registrar Empresa</button>
-  </div>
+  <div id="msg" class="alert hidden"></div>
 
-  <!-- LOGIN -->
-  <div id="loginPanel" class="tab-content active">
-    <div class="form-grid" style="grid-template-columns:1fr">
-      <div class="form-group">
-        <label>Correo electrónico</label>
-        <input type="email" id="loginEmail" placeholder="usuario@empresa.co">
-      </div>
-      <div class="form-group">
-        <label>Contraseña</label>
-        <input type="password" id="loginPass" placeholder="••••••••">
-      </div>
-    </div>
-    <div class="btn-group mt-4">
-      <button class="btn btn-primary w-full" onclick="doLogin()">Ingresar</button>
-    </div>
-    <p class="text-muted mt-2" style="font-size:.78rem">
-      Modo demo: use cualquier correo y contraseña.<br>
-      Para probar perfiles diferentes seleccione uno abajo.
-    </p>
-    <div class="form-group mt-2">
-      <label>Perfil de acceso (demo)</label>
-      <select id="demoProfile">
-        <option value="usuario_final">Usuario Final</option>
-        <option value="preventa">Preventa</option>
-        <option value="administrador" selected>Administrador</option>
-        <option value="super_admin">Super Admin</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- REGISTRO -->
-  <div id="registerPanel" class="tab-content">
-    <div class="step-indicator">
-      <div class="step-dot done" id="sd1"></div>
-      <div class="step-dot" id="sd2"></div>
-      <div class="step-dot" id="sd3"></div>
+  <div id="contenido">
+    <div class="tabs">
+      <button type="button" class="tab-btn active" data-tab="login">Ingresar</button>
+      <button type="button" class="tab-btn" data-tab="crear">Crear empresa</button>
+      <button type="button" class="tab-btn" data-tab="unirse">Unirme</button>
     </div>
 
-    <div id="step1" class="step active">
-      <h3 class="mb-2">Paso 1: Datos de la Empresa</h3>
-      <div class="form-grid" style="grid-template-columns:1fr">
-        <div class="form-group"><label>NIT</label><input type="text" id="rNit" placeholder="900.123.456-7"></div>
-        <div class="form-group"><label>Razón Social</label><input type="text" id="rRazon" placeholder="Mi Empresa S.A.S."></div>
-        <div class="form-group"><label>Ciudad</label><input type="text" id="rCiudad" placeholder="Bogotá"></div>
+    <form id="tab-login" class="tab-content active">
+      <div class="form-grid">
+        <div class="form-group"><label for="lEmail">Correo electrónico</label><input type="email" id="lEmail" required autocomplete="email"></div>
+        <div class="form-group"><label for="lPass">Contraseña</label><input type="password" id="lPass" required autocomplete="current-password"></div>
       </div>
-      <button class="btn btn-primary mt-4" onclick="nextStep(2)">Siguiente &rarr;</button>
-    </div>
+      <button type="submit" class="btn btn-primary w-full mt-4" style="justify-content:center">Ingresar</button>
+    </form>
 
-    <div id="step2" class="step">
-      <h3 class="mb-2">Paso 2: Administrador</h3>
-      <div class="form-grid" style="grid-template-columns:1fr">
-        <div class="form-group"><label>Nombre completo</label><input type="text" id="rNombre" placeholder="Juan Pérez"></div>
-        <div class="form-group"><label>Correo</label><input type="email" id="rEmail" placeholder="admin@empresa.co"></div>
-        <div class="form-group"><label>Contraseña</label><input type="password" id="rPass" placeholder="Mín. 8 caracteres"></div>
+    <form id="tab-crear" class="tab-content">
+      <div class="form-grid">
+        <div class="seccion">Empresa</div>
+        <div class="form-group"><label for="cNit">NIT</label><input type="text" id="cNit" required placeholder="900.123.456-7"></div>
+        <div class="form-group"><label for="cRazon">Razón social</label><input type="text" id="cRazon" required></div>
+        <div class="form-group"><label for="cCiudad">Ciudad</label><input type="text" id="cCiudad"></div>
+        <div class="form-group"><label for="cPlan">Plan</label><select id="cPlan"></select></div>
+        <div class="seccion">Administrador</div>
+        <div class="form-group"><label for="cNombre">Nombre completo</label><input type="text" id="cNombre" required></div>
+        <div class="form-group"><label for="cEmail">Correo electrónico</label><input type="email" id="cEmail" required autocomplete="email"></div>
+        <div class="form-group"><label for="cPass">Contraseña (mínimo 8 caracteres)</label><input type="password" id="cPass" required minlength="8" autocomplete="new-password"></div>
       </div>
-      <div class="btn-group mt-4">
-        <button class="btn btn-secondary" onclick="nextStep(1)">&larr; Atrás</button>
-        <button class="btn btn-primary" onclick="nextStep(3)">Siguiente &rarr;</button>
-      </div>
-    </div>
+      <button type="submit" class="btn btn-primary w-full mt-4" style="justify-content:center">Crear cuenta</button>
+    </form>
 
-    <div id="step3" class="step">
-      <h3 class="mb-2">Paso 3: Seleccionar Plan</h3>
-      <div style="display:grid;gap:.75rem;margin-bottom:1rem">
-        <label style="display:flex;gap:.75rem;align-items:center;padding:.75rem;border:1px solid var(--clr-border);border-radius:var(--radius);cursor:pointer">
-          <input type="radio" name="plan" value="basico"> <span><strong>Básico</strong> — $49.900/mes · 3 proyectos · 2 usuarios</span>
-        </label>
-        <label style="display:flex;gap:.75rem;align-items:center;padding:.75rem;border:2px solid var(--clr-accent);border-radius:var(--radius);cursor:pointer">
-          <input type="radio" name="plan" value="profesional" checked> <span><strong>Profesional</strong> — $149.900/mes · 10 proyectos · 5 usuarios</span>
-        </label>
-        <label style="display:flex;gap:.75rem;align-items:center;padding:.75rem;border:1px solid var(--clr-border);border-radius:var(--radius);cursor:pointer">
-          <input type="radio" name="plan" value="empresarial"> <span><strong>Empresarial</strong> — $399.900/mes · 50 proyectos · 20 usuarios</span>
-        </label>
+    <form id="tab-unirse" class="tab-content">
+      <p class="text-muted mb-2">Pide al administrador de tu empresa el código de invitación. Entrarás con perfil Usuario Final y el administrador podrá cambiarlo.</p>
+      <div class="form-grid">
+        <div class="form-group"><label for="uCodigo">Código de invitación</label><input type="text" id="uCodigo" required style="text-transform:uppercase"></div>
+        <div id="uEmpresa" class="text-sm hidden"></div>
+        <div class="form-group"><label for="uNombre">Nombre completo</label><input type="text" id="uNombre" required></div>
+        <div class="form-group"><label for="uEmail">Correo electrónico</label><input type="email" id="uEmail" required autocomplete="email"></div>
+        <div class="form-group"><label for="uPass">Contraseña (mínimo 8 caracteres)</label><input type="password" id="uPass" required minlength="8" autocomplete="new-password"></div>
       </div>
-      <div class="btn-group">
-        <button class="btn btn-secondary" onclick="nextStep(2)">&larr; Atrás</button>
-        <button class="btn btn-primary" onclick="doRegister()">&#10003; Crear Cuenta</button>
-      </div>
-    </div>
+      <button type="submit" class="btn btn-primary w-full mt-4" style="justify-content:center">Crear cuenta</button>
+    </form>
   </div>
 </div>
 
-<div id="toast" class="toast"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
 <script>
-const PERFILES = {
-  usuario_final: { codigo:'usuario_final', nombre:'Usuario Final', nivel:1 },
-  preventa:      { codigo:'preventa',      nombre:'Preventa',      nivel:2 },
-  administrador: { codigo:'administrador', nombre:'Administrador', nivel:3 },
-  super_admin:   { codigo:'super_admin',   nombre:'Super Admin',   nivel:4 },
-};
+const sb = App.sb;
+const val = id => document.getElementById(id).value.trim();
 
-function showToast(msg, type='success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast show ${type}`;
-  setTimeout(() => t.className = 'toast', 3000);
+function mensaje(texto, tipo = 'info') {
+  const m = document.getElementById('msg');
+  m.textContent = texto;
+  m.className = `alert alert-${tipo}`;
 }
 
-function switchMode(mode) {
-  document.getElementById('loginPanel').classList.toggle('active', mode === 'login');
-  document.getElementById('registerPanel').classList.toggle('active', mode === 'register');
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0) === (mode==='login')));
+function mostrarTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(f => f.classList.toggle('active', f.id === 'tab-' + tab));
+  document.getElementById('msg').className = 'alert hidden';
 }
 
-function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const perfil = document.getElementById('demoProfile').value;
-  if (!email) { showToast('Ingrese un correo', 'error'); return; }
-  const auth = {
-    usuario: { id: 'demo-001', nombre: email.split('@')[0], email },
-    empresa: { id: 'demo-emp', nit: '900.123.456-7', razon_social: 'Empresa Demo' },
-    perfil: PERFILES[perfil],
-    token: 'demo-jwt-token-' + Date.now(),
-    loggedAt: new Date().toISOString(),
-  };
-  localStorage.setItem('_proyectopro_auth', JSON.stringify(auth));
-  showToast('Bienvenido, ' + auth.usuario.nombre);
-  setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+async function enviando(form, fn) {
+  const btn = form.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try { await fn(); } finally { btn.disabled = false; }
 }
 
-function nextStep(n) {
-  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-  document.getElementById('step' + n).classList.add('active');
-  [1,2,3].forEach(i => document.getElementById('sd'+i).classList.toggle('done', i <= n));
+function errorRegistro(error) {
+  if (/already registered/i.test(error.message)) return 'Ese correo ya tiene una cuenta. Usa la pestaña Ingresar.';
+  if (/Database error/i.test(error.message)) return 'No se pudo crear la cuenta. Verifica los datos e inténtalo de nuevo.';
+  if (/Password/i.test(error.message)) return 'La contraseña no cumple los requisitos (mínimo 8 caracteres).';
+  return error.message;
 }
 
-function doRegister() {
-  const nit   = document.getElementById('rNit').value.trim();
-  const razon = document.getElementById('rRazon').value.trim();
-  const email = document.getElementById('rEmail').value.trim();
-  if (!nit || !razon || !email) { showToast('Complete todos los campos', 'error'); return; }
-  const auth = {
-    usuario: { id: 'new-001', nombre: document.getElementById('rNombre').value || email, email },
-    empresa: { id: 'new-emp', nit, razon_social: razon, ciudad: document.getElementById('rCiudad').value },
-    perfil: PERFILES['administrador'],
-    plan: document.querySelector('input[name=plan]:checked')?.value || 'profesional',
-    token: 'new-jwt-' + Date.now(),
-    loggedAt: new Date().toISOString(),
-  };
-  localStorage.setItem('_proyectopro_auth', JSON.stringify(auth));
-  showToast('Cuenta creada. Redirigiendo...');
-  setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+async function registrar(email, password, meta) {
+  const { data, error } = await sb.auth.signUp({
+    email, password,
+    options: { data: meta, emailRedirectTo: location.origin + '/index.html' },
+  });
+  if (error) { mensaje(errorRegistro(error), 'error'); return; }
+  if (data.session) { location.href = 'index.html'; return; }
+  mostrarTab('login');
+  mensaje(`Te enviamos un correo a ${email}. Confirma tu cuenta y luego ingresa.`, 'ok');
 }
+
+async function iniciar() {
+  if (!App.configurado) {
+    mensaje('Falta conectar Supabase: edita config.js con la URL y la anon key de tu proyecto.', 'warn');
+    document.getElementById('contenido').classList.add('hidden');
+    return;
+  }
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { location.href = 'index.html'; return; }
+
+  if (new URLSearchParams(location.search).get('error') === 'sin_acceso') {
+    mensaje('Tu usuario no está asociado a una empresa o fue desactivado. Contacta al administrador.', 'error');
+  }
+
+  const { data: planes } = await sb.from('planes').select('codigo, nombre, precio_mensual, max_proyectos, max_usuarios').order('precio_mensual');
+  document.getElementById('cPlan').innerHTML = (planes || []).map(p =>
+    `<option value="${App.esc(p.codigo)}">${App.esc(p.nombre)} — ${App.fmtCur(p.precio_mensual)}/mes · ${p.max_proyectos ?? '∞'} proyectos · ${p.max_usuarios ?? '∞'} usuarios</option>`
+  ).join('');
+}
+
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => mostrarTab(b.dataset.tab)));
+
+document.getElementById('tab-login').addEventListener('submit', e => {
+  e.preventDefault();
+  enviando(e.target, async () => {
+    const { error } = await sb.auth.signInWithPassword({ email: val('lEmail'), password: document.getElementById('lPass').value });
+    if (error) {
+      mensaje(/not confirmed/i.test(error.message) ? 'Debes confirmar tu correo antes de ingresar.' : 'Correo o contraseña incorrectos.', 'error');
+      return;
+    }
+    location.href = 'index.html';
+  });
+});
+
+document.getElementById('tab-crear').addEventListener('submit', e => {
+  e.preventDefault();
+  enviando(e.target, async () => {
+    const { data: libre, error } = await sb.rpc('nit_disponible', { p_nit: val('cNit') });
+    if (error) { mensaje(error.message, 'error'); return; }
+    if (!libre) { mensaje('Ya existe una empresa registrada con ese NIT. Pide un código de invitación a su administrador.', 'error'); return; }
+    await registrar(val('cEmail'), document.getElementById('cPass').value, {
+      modo: 'crear', nombre: val('cNombre'), nit: val('cNit'), razon_social: val('cRazon'), ciudad: val('cCiudad'), plan: val('cPlan'),
+    });
+  });
+});
+
+document.getElementById('uCodigo').addEventListener('change', async () => {
+  const caja = document.getElementById('uEmpresa');
+  const codigo = val('uCodigo');
+  if (!codigo) { caja.classList.add('hidden'); return; }
+  const { data } = await sb.rpc('empresa_por_invitacion', { p_codigo: codigo });
+  caja.innerHTML = data ? `&#10003; Te unirás a <strong>${App.esc(data)}</strong>` : '&#10007; Código no válido';
+  caja.style.color = data ? '#166534' : '#991b1b';
+  caja.classList.remove('hidden');
+});
+
+document.getElementById('tab-unirse').addEventListener('submit', e => {
+  e.preventDefault();
+  enviando(e.target, async () => {
+    const { data: empresa } = await sb.rpc('empresa_por_invitacion', { p_codigo: val('uCodigo') });
+    if (!empresa) { mensaje('El código de invitación no es válido.', 'error'); return; }
+    await registrar(val('uEmail'), document.getElementById('uPass').value, {
+      modo: 'unirse', nombre: val('uNombre'), codigo_invitacion: val('uCodigo'),
+    });
+  });
+});
+
+iniciar();
 </script>
 </body>
 </html>
